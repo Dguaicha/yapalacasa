@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salvar - Centro de Ayuda</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #D4845F;
+            --bg: #F6EFE4;
+            --surface: #FFFFFF;
+            --text: #1A1A1A;
+            --text-secondary: #706B63;
+            --border: #E8E3DB;
+            --success: #4CAF50;
+            --error: #F66363;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #A65A3A 100%);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            opacity: 0.95;
+            margin-bottom: 2rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: white;
+            color: var(--primary);
+            padding: 1rem 2.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        /* Contact Section */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .contact-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .contact-card h3 {
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .contact-card p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .contact-card a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* FAQ Section */
+        .faq-item {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            background-color: var(--surface);
+            transition: background-color 0.3s;
+        }
+
+        .faq-question:hover {
+            background-color: #F9F7F3;
+        }
+
+        .faq-toggle {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            background-color: #FAFAF8;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .faq-answer.active {
+            max-height: 500px;
+            padding: 1.5rem;
+        }
+
+        .policies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .policy-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .policy-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 5px 15px rgba(212, 132, 95, 0.1);
+        }
+
+        .policy-card h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .policy-card a {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--text);
+            color: white;
+            padding: 3rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h4 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section a {
+            color: #CCC;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #444;
+            padding-top: 1.5rem;
+            text-align: center;
+            color: #999;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 1rem;
+                font-size: 0.9rem;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Download App Section */
+        .download-section {
+            background: linear-gradient(135deg, #F9F7F3 0%, #F5EBE0 100%);
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .download-section h2 {
+            margin-bottom: 2rem;
+            color: var(--text);
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background-color: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .download-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header/Navigation -->
+    <header>
+        <nav>
+            <a href="#" class="logo">Salvar</a>
+            <ul class="nav-links">
+                <li><a href="#faq">FAQ</a></li>
+                <li><a href="#soporte">Soporte</a></li>
+                <li><a href="#politicas">Políticas</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Centro de Ayuda Salvar</h1>
+            <p>Alimentar personas. Preservar valor. Reducir desperdicio.</p>
+            <p style="font-size: 1rem; opacity: 0.9;">
+                Encuentra respuestas a tus preguntas sobre cómo usar la app, reservas, pagos, y más.
+            </p>
+        </div>
+    </section>
+
+    <div class="container">
+        <!-- Download Section -->
+        <section class="download-section">
+            <h2>Descarga la App</h2>
+            <div class="download-buttons">
+                <a href="https://play.google.com/store" class="download-btn">
+                    📱 Google Play
+                </a>
+                <a href="https://apps.apple.com" class="download-btn">
+                    🍎 App Store
+                </a>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section class="section" id="contacto">
+            <h2 class="section-title">Contacto</h2>
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <div class="contact-icon">📧</div>
+                    <h3>Correo Electrónico</h3>
+                    <p>Para soporte general y consultas</p>
+                    <a href="mailto:soporte@salvar.app">soporte@salvar.app</a>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">☎️</div>
+                    <h3>Teléfono</h3>
+                    <p>Lunes a Viernes, 9:00 AM - 6:00 PM</p>
+                    <a href="tel:+1234567890">+1 (234) 567-890</a>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">⏰</div>
+                    <h3>Horario de Atención</h3>
+                    <p>Siempre disponibles para ayudarte</p>
+                    <p style="font-size: 0.9rem;">L-V: 9:00 AM - 6:00 PM<br>Zona Horaria: UTC-5</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="section" id="faq">
+            <h2 class="section-title">Preguntas Frecuentes</h2>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>¿Cómo funciona Salvar?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Salvar conecta a restaurantes y negocios con excedentes de comida de calidad con personas que los necesitan. Descubre ofertas, filtra por distancia y categoría, reserva tu bolsa sorpresa, y recógela en el horario disponible. Es rápido, fácil, y ayudas a reducir el desperdicio de alimentos.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>¿Cómo hago una reserva?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    1. Abre la app y ve a "Inicio"<br>
+                    2. Crea una cuenta o inicia sesión<br>
+                    3. Explora los restaurantes disponibles cerca de ti<br>
+                    4. Selecciona un restaurante y una oferta<br>
+                    5. Agrega a tu carrito y confirma la compra<br>
+                    6. Recoge tu bolsa en el horario especificado<br>
+                    7. ¡Disfruta y ayuda a reducir desperdicio!
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>¿Qué formas de pago aceptan?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Actualmente aceptamos tarjetas de crédito y débito. Pronto añadiremos más opciones como billeteras digitales y transferencias bancarias. Todos los pagos son seguros y encriptados.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>¿Puedo cancelar una reserva?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Sí, puedes cancelar una reserva hasta 1 hora antes del horario de recogida especificado. La cancelación es gratuita. Ve a "Mis Reservas" en la app y selecciona la opción de cancelar. Si tienes problemas, contacta a nuestro equipo de soporte.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>¿Qué es una "bolsa sorpresa"?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Una bolsa sorpresa es un paquete de alimentos de calidad que un restaurante o negocio va a descartar al final del día. Contiene alimentos frescos pero que no se vendieron. El contenido exacto es una sorpresa pero siempre es seguro y delicioso.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>¿Es segura la comida?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Absolutamente. Solo trabajamos con restaurantes y negocios verificados que mantienen altos estándares de higiene y seguridad alimentaria. Toda la comida es fresca y lista para consumir. Si tienes dudas sobre una específica bolsa, contacta a nuestro equipo.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>¿Cómo aplico los filtros?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Toca el botón "Filtro" en la esquina superior derecha de la pantalla de inicio. Puedes filtrar por:<br>
+                    • Distancia (cualquier distancia, &lt;1km, &lt;3km, &lt;5km)<br>
+                    • Tipo de comida (comida rápida, panadería, típico, supermercado, café, saludable)<br>
+                    • Horario de recogida (hoy, mañana, cualquier día)<br>
+                    • Solo negocios abiertos ahora
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>¿Hay algún costo de inscripción?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    No, la inscripción en Salvar es completamente gratuita. Solo pagas por los alimentos que compres en las bolsas sorpresa. No hay tarifas ocultas ni costos de membresía.
+                </div>
+            </div>
+        </section>
+
+        <!-- Support Section -->
+        <section class="section" id="soporte">
+            <h2 class="section-title">Opciones de Soporte</h2>
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <div class="contact-icon">💬</div>
+                    <h3>Chat en Vivo</h3>
+                    <p>Habla directamente con nuestro equipo</p>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Disponible en horario de atención</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">📖</div>
+                    <h3>Centro de Ayuda</h3>
+                    <p>Tutoriales y guías paso a paso</p>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Disponible 24/7</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">📱</div>
+                    <h3>App de Soporte</h3>
+                    <p>Envía tickets de soporte desde la app</p>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Respuesta en 24 horas</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Policies Section -->
+        <section class="section" id="politicas">
+            <h2 class="section-title">Políticas & Legal</h2>
+            <div class="policies-grid">
+                <div class="policy-card">
+                    <h3>Términos de Servicio</h3>
+                    <p>Lee nuestros términos y condiciones de uso</p>
+                    <a href="#">Ver Términos</a>
+                </div>
+                <div class="policy-card">
+                    <h3>Política de Privacidad</h3>
+                    <p>Cómo protegemos tus datos personales</p>
+                    <a href="#">Ver Política</a>
+                </div>
+                <div class="policy-card">
+                    <h3>Política de Reembolsos</h3>
+                    <p>Información sobre devoluciones y reembolsos</p>
+                    <a href="#">Ver Política</a>
+                </div>
+                <div class="policy-card">
+                    <h3>Normas de Regulación</h3>
+                    <p>Cumplimiento de normas sanitarias</p>
+                    <a href="#">Ver Normas</a>
+                </div>
+                <div class="policy-card">
+                    <h3>Política de Cookies</h3>
+                    <p>Información sobre cookies y seguimiento</p>
+                    <a href="#">Ver Política</a>
+                </div>
+                <div class="policy-card">
+                    <h3>Seguridad Alimentaria</h3>
+                    <p>Estándares de seguridad que cumplimos</p>
+                    <a href="#">Ver Estándares</a>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Salvar</h4>
+                <ul>
+                    <li><a href="#">Sobre nosotros</a></li>
+                    <li><a href="#">Nuestra misión</a></li>
+                    <li><a href="#">Impacto social</a></li>
+                    <li><a href="#">Blog</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Para Usuarios</h4>
+                <ul>
+                    <li><a href="#">Cómo funciona</a></li>
+                    <li><a href="#">Descargar app</a></li>
+                    <li><a href="#">Mi cuenta</a></li>
+                    <li><a href="#">Mis reservas</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Para Negocios</h4>
+                <ul>
+                    <li><a href="#">Portal de socios</a></li>
+                    <li><a href="#">Registrar negocio</a></li>
+                    <li><a href="#">Recursos</a></li>
+                    <li><a href="#">Contacto comercial</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Términos de servicio</a></li>
+                    <li><a href="#">Privacidad</a></li>
+                    <li><a href="#">Seguridad</a></li>
+                    <li><a href="#">Accesibilidad</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Salvar. Todos los derechos reservados. Reduciendo desperdicio, alimentando comunidades.</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleFaq(element) {
+            const answer = element.nextElementSibling;
+            const toggle = element.querySelector('.faq-toggle');
+
+            // Close all other FAQs
+            document.querySelectorAll('.faq-answer').forEach(item => {
+                if (item !== answer) {
+                    item.classList.remove('active');
+                }
+            });
+
+            document.querySelectorAll('.faq-toggle').forEach(item => {
+                if (item !== toggle) {
+                    item.textContent = '+';
+                }
+            });
+
+            // Toggle current FAQ
+            answer.classList.toggle('active');
+            toggle.textContent = answer.classList.contains('active') ? '−' : '+';
+        }
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

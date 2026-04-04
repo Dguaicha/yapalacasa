@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Salvar",
+    "slug": "salvar",
+    "version": "1.0.0",
+    "scheme": "salvar",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "backgroundColor": "#FBFBF7",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "backgroundColor": "#FBFBF7",
+      "resizeMode": "contain"
+    },
+    "web": {
+      "backgroundColor": "#FBFBF7",
+      "favicon": "./assets/favicon.png"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Salvar usa tu ubicación para mostrar negocios y bolsas más cercanas.",
+          "locationWhenInUsePermission": "Salvar usa tu ubicación para ordenar resultados por distancia."
+        }
+      ]
+    ],
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FBFBF7"
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "moduleSuffixes": [".native", ".web", ""]
+  },
+  "exclude": ["dist", "node_modules"],
+  "extends": "expo/tsconfig.base"
+}
