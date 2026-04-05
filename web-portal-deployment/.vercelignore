@@ -1,0 +1,7 @@
+# Vercel ignore patterns - only deploy necessary files
+node_modules/
+.git/
+.env
+.env.local
+*.md
+README.md

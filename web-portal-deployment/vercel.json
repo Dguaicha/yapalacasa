@@ -1,8 +1,13 @@
 {
-  "buildCommand": "echo 'Static site - no build required'",
+  "buildCommand": "",
+  "installCommand": "",
   "outputDirectory": ".",
-  "installCommand": "echo 'No dependencies to install'",
-  "env": {
-    "NEXT_PUBLIC_CONTACT_EMAIL": "@salvar.app"
-  }
+  "framework": "static",
+  "public": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
