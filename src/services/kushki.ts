@@ -53,15 +53,6 @@ let StripeNative: any = null
  */
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_your_key_here'
 
-// Platform-specific imports - only load Stripe native SDK on mobile platforms
-if (Platform.OS !== 'web') {
-  try {
-    StripeNative = require('@stripe/stripe-react-native')
-  } catch (e) {
-    console.warn('[Payment] Stripe native SDK not available:', e)
-  }
-}
-
 /**
  * Platform initialization state tracking
  * Prevents multiple initialization attempts
@@ -104,8 +95,18 @@ export const paymentService = {
         // Web uses Stripe Elements - initialization handled separately
         console.log('[Payment] Web platform initialized')
       } else {
+        // Dynamically import Stripe only for native platforms
+        if (!StripeNative) {
+          try {
+            StripeNative = await import('@stripe/stripe-react-native')
+          } catch (e) {
+            console.warn('[Payment] Stripe native SDK not available:', e)
+            return
+          }
+        }
+
         // Native platforms require explicit initialization
-        if (StripeNative) {
+        if (StripeNative?.initStripe) {
           await StripeNative.initStripe({
             publishableKey: STRIPE_PUBLISHABLE_KEY,
             merchantIdentifier: 'merchant.com.salvar.app',
