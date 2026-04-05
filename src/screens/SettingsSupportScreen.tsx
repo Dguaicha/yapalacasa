@@ -12,7 +12,7 @@ const supportItems = [
     detail: 'Problemas con recogida, cancelaciones o reembolsos.',
     icon: 'help-circle-outline' as const,
     action: async () => {
-      await Linking.openURL('https://salvar-help.example.com')
+      await Linking.openURL('https://yapalacasa-web-portal.vercel.app')
     }
   },
   {
@@ -36,7 +36,7 @@ const supportItems = [
     detail: 'Respuestas rapidas sobre reservas y pagos.',
     icon: 'chatbubbles-outline' as const,
     action: async () => {
-      await Linking.openURL('https://salvar-help.example.com/faq')
+      await Linking.openURL('https://yapalacasa-web-portal.vercel.app#soporte')
     }
   }
 ] as const
