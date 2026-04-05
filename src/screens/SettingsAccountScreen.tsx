@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Alert, Pressable, ScrollView, Text, View, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { router } from 'expo-router'
 
 import { FlagStripe } from '../components/ui/FlagStripe'
 import { PrimaryButton } from '../components/ui/PrimaryButton'
@@ -19,6 +20,7 @@ export function SettingsAccountScreen() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loadingEmail, setLoadingEmail] = useState(false)
   const [loadingPassword, setLoadingPassword] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Sync email when session loads
   useEffect(() => {
@@ -26,6 +28,37 @@ export function SettingsAccountScreen() {
       setEmail(session.user.email)
     }
   }, [session])
+
+  async function handleDeleteAccount() {
+    Alert.alert(
+      'Eliminar cuenta',
+      'Esta accion es permanente y eliminara todos tus datos. Estar seguro?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true)
+            try {
+              const { error } = await supabase.auth.admin.deleteUser(session?.user?.id ?? '')
+              if (error) throw error
+              await supabase.auth.signOut()
+              Alert.alert('Cuenta eliminada', 'Tu cuenta ha sido eliminada correctamente.')
+              router.replace('/onboarding')
+            } catch (error: any) {
+              // Fallback: user can delete their own account via signOut and not returning
+              await supabase.auth.signOut()
+              Alert.alert('Sesion cerrada', 'Para eliminar tu cuenta completamente, contacta a soporte@salvar.app')
+              router.replace('/onboarding')
+            } finally {
+              setDeleting(false)
+            }
+          }
+        }
+      ]
+    )
+  }
 
   if (sessionLoading) {
     return (
@@ -41,16 +74,16 @@ export function SettingsAccountScreen() {
       <StackHeader title="Cuenta" />
       <ScrollView contentContainerClassName="p-6 gap-y-6">
         <Text className="text-sm text-text-secondary leading-relaxed">
-          Gestiona tu información de acceso y seguridad.
+          Gestiona tu informacion de acceso y seguridad.
         </Text>
 
         {/* Email Section */}
         <View className="bg-surface p-5 rounded-3xl border border-border shadow-sm">
           <Text className="text-xs font-bold text-text-secondary uppercase mb-4 tracking-widest">
-            Correo Electrónico
+            Correo Electronico
           </Text>
           <TextInputField
-            label="Dirección de correo"
+            label="Direccion de correo"
             value={email}
             onChangeText={setEmail}
             placeholder="tu.correo@ejemplo.com"
@@ -63,14 +96,14 @@ export function SettingsAccountScreen() {
             onPress={async () => {
               const nextEmail = email.trim().toLowerCase()
               if (!EMAIL_REGEX.test(nextEmail)) {
-                Alert.alert('Correo inválido', 'Por favor ingresa un correo electrónico válido.')
+                Alert.alert('Correo invalido', 'Por favor ingresa un correo electronico valido.')
                 return
               }
               try {
                 setLoadingEmail(true)
                 const { error } = await supabase.auth.updateUser({ email: nextEmail })
                 if (error) throw error
-                Alert.alert('Confirmación enviada', 'Revisa tu bandeja de entrada para confirmar el cambio.')
+                Alert.alert('Confirmacion enviada', 'Revisa tu bandeja de entrada para confirmar el cambio.')
               } catch (error: any) {
                 Alert.alert('Error', error.message || 'No se pudo actualizar el correo.')
               } finally {
@@ -88,32 +121,32 @@ export function SettingsAccountScreen() {
           </Text>
           <View className="gap-y-3">
             <TextInputField
-              label="Nueva contraseña"
+              label="Nueva contrasena"
               value={password}
               onChangeText={setPassword}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Minimo 6 caracteres"
               secureTextEntry
               autoCapitalize="none"
             />
             <TextInputField
-              label="Confirmar contraseña"
+              label="Confirmar contrasena"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="Repite tu contraseña"
+              placeholder="Repite tu contrasena"
               secureTextEntry
               autoCapitalize="none"
             />
           </View>
           <PrimaryButton
-            title="Cambiar contraseña"
+            title="Cambiar contrasena"
             loading={loadingPassword}
             onPress={async () => {
               if (password.length < 6) {
-                Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres.')
+                Alert.alert('Error', 'La contrasena debe tener al menos 6 caracteres.')
                 return
               }
               if (password !== confirmPassword) {
-                Alert.alert('Error', 'Las contraseñas no coinciden.')
+                Alert.alert('Error', 'Las contrasenas no coinciden.')
                 return
               }
               try {
@@ -122,9 +155,9 @@ export function SettingsAccountScreen() {
                 if (error) throw error
                 setPassword('')
                 setConfirmPassword('')
-                Alert.alert('Éxito', 'Tu contraseña ha sido actualizada.')
+                Alert.alert('Exito', 'Tu contrasena ha sido actualizada.')
               } catch (error: any) {
-                Alert.alert('Error', error.message || 'No se pudo actualizar la contraseña.')
+                Alert.alert('Error', error.message || 'No se pudo actualizar la contrasena.')
               } finally {
                 setLoadingPassword(false)
               }
@@ -136,10 +169,13 @@ export function SettingsAccountScreen() {
         {/* Danger Zone */}
         <View className="mt-4">
           <Pressable 
-            onPress={() => Alert.alert('Eliminar cuenta', '¿Estás seguro? Esta acción no se puede deshacer.')}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
             className="bg-error/5 p-4 rounded-2xl border border-error/20 items-center"
           >
-            <Text className="text-error font-bold text-sm">Eliminar mi cuenta</Text>
+            <Text className="text-error font-bold text-sm">
+              {deleting ? 'Eliminando...' : 'Eliminar mi cuenta'}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>

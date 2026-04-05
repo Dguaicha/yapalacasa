@@ -1,6 +1,6 @@
-import { router } from 'expo-router'
+﻿import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { FlagStripe } from '../components/ui/FlagStripe'
@@ -10,6 +10,7 @@ import { SecondaryButton } from '../components/ui/SecondaryButton'
 import { TextInputField } from '../components/ui/TextInputField'
 import { useSession } from '../hooks/useSession'
 import { supabase } from '../services/supabase'
+import { getAuthRedirectUrl } from '../services/auth'
 import { colors, typography } from '../theme'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -62,10 +63,32 @@ export function LoginScreen() {
     router.replace('/inicio')
   }
 
+  async function handleForgotPassword() {
+    const trimmedEmail = email.trim().toLowerCase()
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setEmailError('Ingresa un correo valido para recuperar tu contrasena.')
+      return
+    }
+
+    setLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      redirectTo: getAuthRedirectUrl()
+    })
+    setLoading(false)
+
+    if (error) {
+      Alert.alert('Error', error.message)
+      return
+    }
+
+    Alert.alert('Correo enviado', 'Revisa tu bandeja de entrada para restablecer tu contrasena.')
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlagStripe />
-      <StackHeader title="Iniciar sesión" onNavigate={() => router.replace('/onboarding')} />
+      <StackHeader title="Iniciar sesion" onNavigate={() => router.replace('/onboarding')} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text allowFontScaling style={styles.subtitle}>
           Entra para reservar bolsas cerca de ti.
@@ -90,9 +113,11 @@ export function LoginScreen() {
             secureTextEntry
             value={password}
           />
-          <Text allowFontScaling style={styles.forgotText}>
-            Olvide mi contrasena
-          </Text>
+          <Pressable onPress={handleForgotPassword}>
+            <Text allowFontScaling style={styles.forgotText}>
+              Olvide mi contrasena
+            </Text>
+          </Pressable>
           <PrimaryButton
             title={loading ? 'Ingresando...' : 'Iniciar sesion'}
             onPress={handleLogin}

@@ -48,13 +48,57 @@ salvar/
    npm install --legacy-peer-deps
    ```
 
-2. **Iniciar App:**
+2. **Configuración del Entorno:**
+   ```bash
+   cp .env.example .env
+   # Edita .env con tus claves API
+   ```
+
+3. **Backend Setup:**
+   - Configura Supabase: `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+   - Ejecuta el schema: `supabase/setup.sql` en tu base de datos
+
+4. **Configuración de Pagos:**
+   - **Stripe (Recomendado):** Crea cuenta en [Stripe Dashboard](https://dashboard.stripe.com)
+     - Obtén tu `Publishable Key` para `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+     - Configura tu `Secret Key` en Supabase Edge Functions
+   - **Kushki (Legacy):** Solo para Ecuador - usa Stripe para mejor compatibilidad cross-platform
+
+5. **Iniciar App:**
    ```bash
    npx expo start -c
    ```
 
-3. **Backend:**
-   Asegúrate de configurar las variables `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` en tu archivo `.env`.
+## 💳 Configuración de Pagos
+
+### Stripe (Recomendado para iOS, Android, Web)
+
+1. **Cuenta Stripe:**
+   - Regístrate en [Stripe](https://stripe.com)
+   - Activa tu cuenta para Ecuador
+
+2. **Claves API:**
+   ```env
+   EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   ```
+
+3. **Supabase Edge Function:**
+   ```bash
+   # Deploy the payment function
+   supabase functions deploy create-payment-intent
+   ```
+
+4. **Variables de Entorno en Supabase:**
+   - `STRIPE_SECRET_KEY`: Tu clave secreta de Stripe
+   - `SUPABASE_URL` y `SUPABASE_ANON_KEY`: Auto-configuradas
+
+### Kushki (Solo Ecuador)
+
+Kushki está disponible como fallback, pero Stripe ofrece mejor soporte cross-platform.
+
+```env
+EXPO_PUBLIC_KUSHKI_PUBLIC_KEY=your_kushki_key
+```
 
 ---
 *Hecho con orgullo para el Ecuador.* 🇪🇨

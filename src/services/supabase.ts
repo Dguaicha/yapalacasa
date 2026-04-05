@@ -2,11 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import { Platform } from 'react-native'
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim()
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim()
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() || ''
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() || ''
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Faltan variables de entorno de Supabase.')
+  console.error('[Salvar] ERROR: Faltan variables de entorno de Supabase. El cliente no funcionará.')
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { ActivityIndicator, router } from 'expo-router'
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { router } from 'expo-router'
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { FlagStripe } from '../components/ui/FlagStripe'
@@ -10,6 +10,7 @@ import { SecondaryButton } from '../components/ui/SecondaryButton'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../services/supabase'
 import { kushkiService } from '../services/kushki'
+import { cancelMyReservation } from '../services/reservations'
 import { colors, typography } from '../theme'
 
 export function CartScreen() {
@@ -24,17 +25,9 @@ export function CartScreen() {
 
     setLoading(true)
 
+    const reservations: Array<{ id: string; amount: number; title: string }> = []
+
     try {
-      const tokenResult = await kushkiService.generateToken({
-        lastFour: '4242',
-        cardHolder: 'JUAN PEREZ'
-      })
-
-      if (!tokenResult.success) {
-        throw new Error('Error al generar el token de pago.')
-      }
-
-      const reservationIds: string[] = []
       for (const item of items) {
         const { data, error } = await supabase.rpc('reserve_listing', {
           target_listing_id: item.offer.id
@@ -45,15 +38,26 @@ export function CartScreen() {
         }
 
         if (data && data.id) {
-          reservationIds.push(data.id)
+          reservations.push({
+            id: data.id,
+            amount: item.offer.salePrice,
+            title: item.offer.title
+          })
         }
       }
 
-      for (const resId of reservationIds) {
-        const payResult = await kushkiService.confirmPayment(resId, tokenResult.token, total)
-        if (!payResult.success) {
-          throw new Error('El pago fue procesado pero no se pudo actualizar la reserva.')
+      const tokenResult = await kushkiService.generateToken(total)
+      if (!tokenResult.success) {
+        throw new Error('Error al crear el pago.')
+      }
+
+      const paymentResult = await kushkiService.confirmPayment(reservations, tokenResult.token)
+      if (!paymentResult.success) {
+        // If some reservations were completed before the failure, we need to handle them
+        if (paymentResult.completedReservations && paymentResult.completedReservations.length > 0) {
+          console.error('Partial payment success - some reservations completed:', paymentResult.completedReservations)
         }
+        throw new Error(paymentResult.error || 'Error al procesar el pago.')
       }
 
       await clearCart()
@@ -61,7 +65,12 @@ export function CartScreen() {
         { text: 'Ver mis reservas', onPress: () => router.replace('/mis-reservas') }
       ])
     } catch (err: unknown) {
-      Alert.alert('Error en el checkout', err instanceof Error ? err.message : 'Ocurrió un error inesperado.')
+      if (reservations.length > 0) {
+        await Promise.allSettled(
+          reservations.map((reservation) => cancelMyReservation(reservation.id))
+        )
+      }
+      Alert.alert('Error en el checkout', err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }

@@ -84,8 +84,22 @@ create table if not exists public.reservations (
   payment_status text not null default 'pending' check (payment_status in ('pending', 'paid', 'failed', 'refunded')),
   payment_id text,
   payment_method text,
+  amount_paid numeric(10, 2),
+  paid_at timestamptz,
   pickup_code text not null unique default upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
   reserved_at timestamptz not null default now()
+);
+
+create table if not exists public.user_payment_methods (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  stripe_payment_method_id text not null unique,
+  last_four text not null,
+  brand text not null,
+  expiry_month integer not null,
+  expiry_year integer not null,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
 );
 
 create unique index if not exists reservations_one_active_per_listing_user_idx
@@ -100,6 +114,7 @@ alter table public.profiles enable row level security;
 alter table public.restaurants enable row level security;
 alter table public.listings enable row level security;
 alter table public.reservations enable row level security;
+alter table public.user_payment_methods enable row level security;
 
 drop policy if exists "Users can view own profile" on public.profiles;
 create policy "Users can view own profile"
@@ -195,27 +210,34 @@ using (
   )
 );
 
-drop policy if exists "Users can view own reservations" on public.reservations;
-create policy "Users can view own reservations"
-on public.reservations
+drop policy if exists "Users can view own payment methods" on public.user_payment_methods;
+create policy "Users can view own payment methods"
+on public.user_payment_methods
 for select
 to authenticated
 using ((select auth.uid()) = user_id);
 
-drop policy if exists "Restaurant owners can view reservations for own listings" on public.reservations;
-create policy "Restaurant owners can view reservations for own listings"
-on public.reservations
-for select
+drop policy if exists "Users can insert own payment methods" on public.user_payment_methods;
+create policy "Users can insert own payment methods"
+on public.user_payment_methods
+for insert
 to authenticated
-using (
-  exists (
-    select 1
-    from public.listings
-    join public.restaurants on restaurants.id = listings.restaurant_id
-    where listings.id = listing_id
-      and restaurants.owner_id = (select auth.uid())
-  )
-);
+with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can update own payment methods" on public.user_payment_methods;
+create policy "Users can update own payment methods"
+on public.user_payment_methods
+for update
+to authenticated
+using ((select auth.uid()) = user_id)
+with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can delete own payment methods" on public.user_payment_methods;
+create policy "Users can delete own payment methods"
+on public.user_payment_methods
+for delete
+to authenticated
+using ((select auth.uid()) = user_id);
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -396,6 +418,53 @@ end;
 $$;
 
 grant execute on function public.complete_reservation(uuid) to authenticated;
+
+create or replace function public.complete_reservation_after_payment(target_reservation_id uuid)
+returns public.reservations
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  target_reservation public.reservations%rowtype;
+begin
+  if current_user_id is null then
+    raise exception 'You must be signed in to complete a reservation.';
+  end if;
+
+  select *
+  into target_reservation
+  from public.reservations
+  where id = target_reservation_id
+  for update;
+
+  if not found then
+    raise exception 'Reservation not found.';
+  end if;
+
+  if target_reservation.user_id <> current_user_id then
+    raise exception 'You can only complete your own reservation.';
+  end if;
+
+  if target_reservation.payment_status <> 'paid' then
+    raise exception 'Payment must be completed before marking reservation as completed.';
+  end if;
+
+  if target_reservation.status <> 'reserved' then
+    raise exception 'Only reserved orders can be completed.';
+  end if;
+
+  update public.reservations
+  set status = 'completed'
+  where id = target_reservation_id
+  returning * into target_reservation;
+
+  return target_reservation;
+end;
+$$;
+
+grant execute on function public.complete_reservation_after_payment(uuid) to authenticated;
 
 insert into storage.buckets (id, name, public)
 values ('restaurant-media', 'restaurant-media', true)

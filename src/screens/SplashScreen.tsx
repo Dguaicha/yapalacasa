@@ -5,10 +5,10 @@ import { useEffect, useRef, useState } from 'react'
 
 import { brandSplashBackground } from '../theme/brandAssets'
 import { useSession } from '../hooks/useSession'
-import { LogoSalvar } from '../components/branding/LogoSalvar'
 import { colors, typography } from '../theme'
 
 const splashSource = require('../../assets/splash-icon.png')
+
 
 const MIN_SPLASH_DURATION = 2000 // 2 segundos mínimo para mostrar el logo
 const ANIMATION_DURATION = 600
@@ -67,10 +67,10 @@ export function SplashScreen() {
       setIsReady(true)
       ExpoSplash.hideAsync()
         .then(() => {
-          router.replace(session ? '/(tabs)' : '/onboarding')
+          router.replace(session ? '/inicio' : '/onboarding')
         })
         .catch(() => {
-          router.replace(session ? '/(tabs)' : '/onboarding')
+          router.replace(session ? '/inicio' : '/onboarding')
         })
     }, MIN_SPLASH_DURATION)
 
@@ -94,13 +94,14 @@ export function SplashScreen() {
           }
         ]}
       >
-        <View style={styles.logoInner}>
-          <LogoSalvar size={logoSize * 0.7} withWordmark />
-        </View>
+        <Image
+          source={splashSource}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
       </Animated.View>
 
-      {/* Tagline debajo del logo */}
-      <Animated.View style={[styles.taglineContainer, { opacity: taglineOpacity }]}>
+      <Animated.View style={[styles.taglineContainer, { opacity: taglineOpacity }]}> 
         <Text style={styles.tagline}>Rescata sabor,</Text>
         <Text style={styles.taglineAccent}>protege el planeta</Text>
       </Animated.View>
@@ -124,10 +125,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 24
   },
-  logoInner: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20
+  logoImage: {
+    width: '100%',
+    height: '100%'
   },
   taglineContainer: {
     alignItems: 'center',
