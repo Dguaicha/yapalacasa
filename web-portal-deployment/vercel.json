@@ -2,8 +2,6 @@
   "buildCommand": "",
   "installCommand": "",
   "outputDirectory": ".",
-  "framework": "static",
-  "public": true,
   "rewrites": [
     {
       "source": "/(.*)",
