@@ -1,0 +1,25 @@
+{
+  "name": "salvar-web-portal",
+  "version": "1.0.0",
+  "description": "Salvar Web Portal - Customer Support & App Landing Page",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 3000",
+    "build": "echo 'No build step needed - static HTML'",
+    "deploy:vercel": "echo 'Deploy to Vercel using CLI: vercel'",
+    "deploy:netlify": "echo 'Deploy to Netlify using CLI: netlify deploy'"
+  },
+  "keywords": [
+    "salvar",
+    "food-rescue",
+    "sustainability",
+    "ecuador",
+    "app"
+  ],
+  "author": "Salvar Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/salvar.git"
+  }
+}

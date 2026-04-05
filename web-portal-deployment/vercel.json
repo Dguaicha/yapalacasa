@@ -1,0 +1,8 @@
+{
+  "buildCommand": "echo 'Static site - no build required'",
+  "outputDirectory": ".",
+  "installCommand": "echo 'No dependencies to install'",
+  "env": {
+    "NEXT_PUBLIC_CONTACT_EMAIL": "@salvar.app"
+  }
+}
