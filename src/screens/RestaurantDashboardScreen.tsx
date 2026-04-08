@@ -16,7 +16,7 @@ import {
   toggleOfferStatus,
   updateOfferForMyRestaurant
 } from '../services/business'
-import { completeMerchantReservation } from '../services/reservations'
+import { redeemMerchantReservation } from '../services/reservations'
 import { colors, typography } from '../theme'
 import type { Offer } from '../types/marketplace'
 
@@ -57,9 +57,17 @@ function toDraft(offer?: Offer | null): OfferDraft {
 }
 
 function normalizeStatus(status: string) {
-  if (status === 'reserved') return 'Reservada'
-  if (status === 'completed') return 'Entregada'
+  if (status === 'reserved') return 'Pendiente de retiro'
+  if (status === 'completed') return 'Retirada y cobrada'
   if (status === 'cancelled') return 'Cancelada'
+  return status
+}
+
+function normalizePayment(status: string) {
+  if (status === 'pending') return 'Cobro pendiente en local'
+  if (status === 'paid') return 'Cobrada'
+  if (status === 'failed') return 'Revisar soporte'
+  if (status === 'refunded') return 'Reembolsada'
   return status
 }
 
@@ -69,6 +77,7 @@ export function RestaurantDashboardScreen() {
   const [draft, setDraft] = useState<OfferDraft>(emptyDraft)
   const [editingOfferId, setEditingOfferId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [pickupCodes, setPickupCodes] = useState<Record<string, string>>({})
 
   const reservedCount = useMemo(
     () => reservations.filter((reservation) => reservation.status === 'reserved').length,
@@ -128,7 +137,7 @@ export function RestaurantDashboardScreen() {
       <StackHeader title="Panel de negocio" />
       <ScrollView contentContainerStyle={styles.content}>
         <Text allowFontScaling style={styles.screenLead}>
-          Gestiona perfil, ofertas activas y pedidos recibidos.
+          Gestiona perfil, ofertas activas y retiros de la beta con pago en local.
         </Text>
 
         {restaurant ? (
@@ -155,7 +164,7 @@ export function RestaurantDashboardScreen() {
                   {completedCount}
                 </Text>
                 <Text allowFontScaling style={styles.metricLabel}>
-                  Entregadas
+                  Retiradas
                 </Text>
               </View>
             </View>
@@ -323,23 +332,46 @@ export function RestaurantDashboardScreen() {
                   Estado {normalizeStatus(reservation.status)}
                 </Text>
                 <Text allowFontScaling style={styles.offerMeta}>
+                  Pago {normalizePayment(reservation.paymentStatus)}
+                </Text>
+                <Text allowFontScaling style={styles.offerMeta}>
                   Total ${reservation.totalPrice.toFixed(2)}
                 </Text>
                 {reservation.status === 'reserved' ? (
-                  <PrimaryButton
-                    title="Marcar como entregada"
-                    onPress={async () => {
-                      try {
-                        await completeMerchantReservation(reservation.id)
-                        await refreshReservations()
-                      } catch (error) {
-                        Alert.alert(
-                          'No se pudo actualizar',
-                          error instanceof Error ? error.message : 'Error inesperado.'
-                        )
+                  <>
+                    <TextInputField
+                      label="Codigo entregado por el cliente"
+                      value={pickupCodes[reservation.id] ?? ''}
+                      onChangeText={(value) =>
+                        setPickupCodes((current) => ({
+                          ...current,
+                          [reservation.id]: value.toUpperCase()
+                        }))
                       }
-                    }}
-                  />
+                      autoCapitalize="characters"
+                    />
+                    <PrimaryButton
+                      title="Confirmar retiro y cobro"
+                      onPress={async () => {
+                        try {
+                          await redeemMerchantReservation(
+                            reservation.id,
+                            pickupCodes[reservation.id] ?? ''
+                          )
+                          setPickupCodes((current) => ({
+                            ...current,
+                            [reservation.id]: ''
+                          }))
+                          await refreshReservations()
+                        } catch (error) {
+                          Alert.alert(
+                            'No se pudo actualizar',
+                            error instanceof Error ? error.message : 'Error inesperado.'
+                          )
+                        }
+                      }}
+                    />
+                  </>
                 ) : null}
               </View>
             ))

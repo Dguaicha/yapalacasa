@@ -16,10 +16,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export function SettingsAccountScreen() {
   const { session, loading: sessionLoading } = useSession()
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [loadingEmail, setLoadingEmail] = useState(false)
-  const [loadingPassword, setLoadingPassword] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   // Sync email when session loads
@@ -41,13 +38,13 @@ export function SettingsAccountScreen() {
           onPress: async () => {
             setDeleting(true)
             try {
-              const { error } = await supabase.auth.admin.deleteUser(session?.user?.id ?? '')
-              if (error) throw error
               await supabase.auth.signOut()
-              Alert.alert('Cuenta eliminada', 'Tu cuenta ha sido eliminada correctamente.')
+              Alert.alert(
+                'Solicitud registrada',
+                'Cerramos tu sesion. Para eliminar la cuenta por completo durante la beta, escribe a soporte@salvar.app.'
+              )
               router.replace('/onboarding')
             } catch (error: any) {
-              // Fallback: user can delete their own account via signOut and not returning
               await supabase.auth.signOut()
               Alert.alert('Sesion cerrada', 'Para eliminar tu cuenta completamente, contacta a soporte@salvar.app')
               router.replace('/onboarding')
@@ -114,56 +111,17 @@ export function SettingsAccountScreen() {
           />
         </View>
 
-        {/* Password Section */}
         <View className="bg-surface p-5 rounded-3xl border border-border shadow-sm">
           <Text className="text-xs font-bold text-text-secondary uppercase mb-4 tracking-widest">
-            Seguridad
+            Estado de verificacion
           </Text>
           <View className="gap-y-3">
-            <TextInputField
-              label="Nueva contrasena"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Minimo 6 caracteres"
-              secureTextEntry
-              autoCapitalize="none"
-            />
-            <TextInputField
-              label="Confirmar contrasena"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Repite tu contrasena"
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <Text className="text-sm text-text-secondary leading-relaxed">
+              {session?.user?.email_confirmed_at
+                ? 'Tu correo esta verificado y tu cuenta puede reservar bolsas.'
+                : 'Debes confirmar el enlace que te enviamos por correo antes de poder reservar.'}
+            </Text>
           </View>
-          <PrimaryButton
-            title="Cambiar contrasena"
-            loading={loadingPassword}
-            onPress={async () => {
-              if (password.length < 6) {
-                Alert.alert('Error', 'La contrasena debe tener al menos 6 caracteres.')
-                return
-              }
-              if (password !== confirmPassword) {
-                Alert.alert('Error', 'Las contrasenas no coinciden.')
-                return
-              }
-              try {
-                setLoadingPassword(true)
-                const { error } = await supabase.auth.updateUser({ password })
-                if (error) throw error
-                setPassword('')
-                setConfirmPassword('')
-                Alert.alert('Exito', 'Tu contrasena ha sido actualizada.')
-              } catch (error: any) {
-                Alert.alert('Error', error.message || 'No se pudo actualizar la contrasena.')
-              } finally {
-                setLoadingPassword(false)
-              }
-            }}
-            className="mt-4"
-          />
         </View>
 
         {/* Danger Zone */}

@@ -4,6 +4,9 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   name text not null,
   email text unique,
+  phone text,
+  phone_verified boolean not null default false,
+  phone_verified_at timestamptz,
   role text not null default 'customer' check (role in ('customer', 'restaurant_owner', 'admin')),
   created_at timestamptz not null default now()
 );
@@ -39,6 +42,9 @@ create table if not exists public.listings (
 );
 
 alter table public.profiles add column if not exists role text not null default 'customer';
+alter table public.profiles add column if not exists phone text;
+alter table public.profiles add column if not exists phone_verified boolean not null default false;
+alter table public.profiles add column if not exists phone_verified_at timestamptz;
 alter table public.restaurants add column if not exists owner_id uuid references auth.users (id) on delete set null;
 alter table public.restaurants add column if not exists address text;
 alter table public.restaurants add column if not exists region text;
@@ -86,20 +92,9 @@ create table if not exists public.reservations (
   payment_method text,
   amount_paid numeric(10, 2),
   paid_at timestamptz,
+  completed_at timestamptz,
   pickup_code text not null unique default upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
   reserved_at timestamptz not null default now()
-);
-
-create table if not exists public.user_payment_methods (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
-  stripe_payment_method_id text not null unique,
-  last_four text not null,
-  brand text not null,
-  expiry_month integer not null,
-  expiry_year integer not null,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now()
 );
 
 create unique index if not exists reservations_one_active_per_listing_user_idx
@@ -114,7 +109,6 @@ alter table public.profiles enable row level security;
 alter table public.restaurants enable row level security;
 alter table public.listings enable row level security;
 alter table public.reservations enable row level security;
-alter table public.user_payment_methods enable row level security;
 
 drop policy if exists "Users can view own profile" on public.profiles;
 create policy "Users can view own profile"
@@ -124,12 +118,6 @@ to authenticated
 using ((select auth.uid()) = id);
 
 drop policy if exists "Users can update own profile" on public.profiles;
-create policy "Users can update own profile"
-on public.profiles
-for update
-to authenticated
-using ((select auth.uid()) = id)
-with check ((select auth.uid()) = id);
 
 drop policy if exists "Anyone can view restaurants" on public.restaurants;
 create policy "Anyone can view restaurants"
@@ -210,34 +198,27 @@ using (
   )
 );
 
-drop policy if exists "Users can view own payment methods" on public.user_payment_methods;
-create policy "Users can view own payment methods"
-on public.user_payment_methods
+drop policy if exists "Users can view own reservations" on public.reservations;
+create policy "Users can view own reservations"
+on public.reservations
 for select
 to authenticated
 using ((select auth.uid()) = user_id);
 
-drop policy if exists "Users can insert own payment methods" on public.user_payment_methods;
-create policy "Users can insert own payment methods"
-on public.user_payment_methods
-for insert
+drop policy if exists "Restaurant owners can view reservations for owned listings" on public.reservations;
+create policy "Restaurant owners can view reservations for owned listings"
+on public.reservations
+for select
 to authenticated
-with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users can update own payment methods" on public.user_payment_methods;
-create policy "Users can update own payment methods"
-on public.user_payment_methods
-for update
-to authenticated
-using ((select auth.uid()) = user_id)
-with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users can delete own payment methods" on public.user_payment_methods;
-create policy "Users can delete own payment methods"
-on public.user_payment_methods
-for delete
-to authenticated
-using ((select auth.uid()) = user_id);
+using (
+  exists (
+    select 1
+    from public.listings
+    join public.restaurants on restaurants.id = listings.restaurant_id
+    where listings.id = listing_id
+      and restaurants.owner_id = (select auth.uid())
+  )
+);
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -246,20 +227,61 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, name, email, role)
+  insert into public.profiles (id, name, email, phone, phone_verified, phone_verified_at, role)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'name', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data ->> 'name', split_part(coalesce(new.email, new.phone, 'usuario'), '@', 1)),
     new.email,
-    coalesce(new.raw_user_meta_data ->> 'role', 'customer')
+    new.phone,
+    new.phone_confirmed_at is not null,
+    new.phone_confirmed_at,
+    'customer'
   )
   on conflict (id) do update
   set
     name = excluded.name,
     email = excluded.email,
-    role = excluded.role;
+    phone = excluded.phone,
+    phone_verified = excluded.phone_verified,
+    phone_verified_at = excluded.phone_verified_at,
+    role = case
+      when public.profiles.role = 'admin' then public.profiles.role
+      else excluded.role
+    end;
 
   return new;
+end;
+$$;
+
+create or replace function public.sync_profile_role_from_restaurant()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  affected_user_id uuid := coalesce(new.owner_id, old.owner_id);
+  has_restaurant boolean := false;
+begin
+  if affected_user_id is null then
+    return coalesce(new, old);
+  end if;
+
+  select exists (
+    select 1
+    from public.restaurants
+    where owner_id = affected_user_id
+  ) into has_restaurant;
+
+  update public.profiles
+  set role = case
+    when role = 'admin' then role
+    when has_restaurant then 'restaurant_owner'
+    else 'customer'
+  end
+  where id = affected_user_id;
+
+  return coalesce(new, old);
 end;
 $$;
 
@@ -278,41 +300,57 @@ begin
     raise exception 'You must be signed in to reserve a bag.';
   end if;
 
-  select *
-  into selected_listing
-  from public.listings
-  where id = target_listing_id
-  for update;
-
-  if not found then
-    raise exception 'Listing not found.';
-  end if;
-
-  if selected_listing.is_active is not true then
-    raise exception 'This bag is no longer active.';
-  end if;
-
-  if selected_listing.quantity_available < 1 then
-    raise exception 'This bag is sold out.';
-  end if;
-
-  if exists (
+  if not exists (
     select 1
-    from public.reservations
-    where listing_id = target_listing_id
-      and user_id = current_user_id
-      and status = 'reserved'
+    from auth.users
+    where id = current_user_id
+      and email_confirmed_at is not null
   ) then
-    raise exception 'You already reserved this bag.';
+    raise exception 'Debes verificar tu correo antes de reservar.';
   end if;
 
-  update public.listings
-  set quantity_available = quantity_available - 1
-  where id = target_listing_id;
+  begin
+    update public.listings
+    set quantity_available = quantity_available - 1
+    where id = target_listing_id
+      and is_active is true
+      and quantity_available > 0
+    returning * into selected_listing;
 
-  insert into public.reservations (listing_id, user_id, total_price)
-  values (target_listing_id, current_user_id, selected_listing.sale_price)
-  returning * into created_reservation;
+    if not found then
+      select *
+      into selected_listing
+      from public.listings
+      where id = target_listing_id;
+
+      if not found then
+        raise exception 'Listing not found.';
+      end if;
+
+      if selected_listing.is_active is not true then
+        raise exception 'This bag is no longer active.';
+      end if;
+
+      raise exception 'This bag is sold out.';
+    end if;
+
+    insert into public.reservations (listing_id, user_id, total_price)
+    values (target_listing_id, current_user_id, selected_listing.sale_price)
+    returning * into created_reservation;
+  exception
+    when unique_violation then
+      if exists (
+        select 1
+        from public.reservations
+        where listing_id = target_listing_id
+          and user_id = current_user_id
+          and status = 'reserved'
+      ) then
+        raise exception 'You already reserved this bag.';
+      end if;
+
+      raise;
+  end;
 
   return created_reservation;
 end;
@@ -373,13 +411,32 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+begin
+  raise exception 'complete_reservation is deprecated. Use redeem_reservation with the pickup code.';
+end;
+$$;
+
+grant execute on function public.complete_reservation(uuid) to authenticated;
+
+drop function if exists public.complete_reservation_after_payment(uuid);
+
+create or replace function public.redeem_reservation(
+  target_reservation_id uuid,
+  provided_pickup_code text
+)
+returns public.reservations
+language plpgsql
+security definer
+set search_path = public
+as $$
 declare
   current_user_id uuid := auth.uid();
   target_reservation public.reservations%rowtype;
   owner_matches boolean;
+  normalized_pickup_code text := upper(trim(coalesce(provided_pickup_code, '')));
 begin
   if current_user_id is null then
-    raise exception 'You must be signed in to complete a reservation.';
+    raise exception 'You must be signed in to redeem a reservation.';
   end if;
 
   select *
@@ -401,15 +458,29 @@ begin
   ) into owner_matches;
 
   if owner_matches is not true then
-    raise exception 'Only the restaurant owner can complete this reservation.';
+    raise exception 'Only the restaurant owner can redeem this reservation.';
+  end if;
+
+  if normalized_pickup_code = '' then
+    raise exception 'Pickup code is required.';
+  end if;
+
+  if target_reservation.pickup_code <> normalized_pickup_code then
+    raise exception 'Pickup code does not match this reservation.';
   end if;
 
   if target_reservation.status <> 'reserved' then
-    raise exception 'Only reserved orders can be completed.';
+    raise exception 'Only reserved orders can be redeemed.';
   end if;
 
   update public.reservations
-  set status = 'completed'
+  set
+    status = 'completed',
+    payment_status = 'paid',
+    payment_method = 'pay_on_pickup',
+    amount_paid = target_reservation.total_price,
+    paid_at = coalesce(target_reservation.paid_at, now()),
+    completed_at = now()
   where id = target_reservation_id
   returning * into target_reservation;
 
@@ -417,54 +488,91 @@ begin
 end;
 $$;
 
-grant execute on function public.complete_reservation(uuid) to authenticated;
+grant execute on function public.redeem_reservation(uuid, text) to authenticated;
 
-create or replace function public.complete_reservation_after_payment(target_reservation_id uuid)
-returns public.reservations
+create table if not exists public.pickup_receipts (
+  id uuid primary key default gen_random_uuid(),
+  reservation_id uuid not null references public.reservations (id) on delete cascade,
+  customer_user_id uuid not null references auth.users (id) on delete cascade,
+  merchant_user_id uuid not null references auth.users (id) on delete cascade,
+  customer_name text,
+  customer_email text,
+  customer_phone text,
+  listing_title text,
+  restaurant_name text,
+  amount_paid numeric(10, 2),
+  delivered_via text not null default 'email',
+  delivery_status text not null default 'pending',
+  sent_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.pickup_receipts enable row level security;
+
+drop policy if exists "Users can view own pickup receipts" on public.pickup_receipts;
+create policy "Users can view own pickup receipts"
+on public.pickup_receipts
+for select
+to authenticated
+using ((select auth.uid()) = customer_user_id);
+
+drop policy if exists "Merchants can view own pickup receipts" on public.pickup_receipts;
+create policy "Merchants can view own pickup receipts"
+on public.pickup_receipts
+for select
+to authenticated
+using ((select auth.uid()) = merchant_user_id);
+
+create or replace function public.fetch_manager_todays_reservations(target_day date default (now() at time zone 'America/Guayaquil')::date)
+returns table (
+  reservation_id uuid,
+  pickup_code text,
+  status text,
+  payment_status text,
+  reserved_at timestamptz,
+  total_price numeric,
+  listing_title text,
+  restaurant_name text,
+  customer_name text,
+  customer_phone text,
+  customer_email text
+)
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
   current_user_id uuid := auth.uid();
-  target_reservation public.reservations%rowtype;
 begin
   if current_user_id is null then
-    raise exception 'You must be signed in to complete a reservation.';
+    raise exception 'You must be signed in.';
   end if;
 
-  select *
-  into target_reservation
+  return query
+  select
+    reservations.id,
+    reservations.pickup_code,
+    reservations.status,
+    reservations.payment_status,
+    reservations.reserved_at,
+    reservations.total_price,
+    listings.title,
+    restaurants.name,
+    profiles.name,
+    profiles.phone,
+    profiles.email
   from public.reservations
-  where id = target_reservation_id
-  for update;
-
-  if not found then
-    raise exception 'Reservation not found.';
-  end if;
-
-  if target_reservation.user_id <> current_user_id then
-    raise exception 'You can only complete your own reservation.';
-  end if;
-
-  if target_reservation.payment_status <> 'paid' then
-    raise exception 'Payment must be completed before marking reservation as completed.';
-  end if;
-
-  if target_reservation.status <> 'reserved' then
-    raise exception 'Only reserved orders can be completed.';
-  end if;
-
-  update public.reservations
-  set status = 'completed'
-  where id = target_reservation_id
-  returning * into target_reservation;
-
-  return target_reservation;
+  join public.listings on listings.id = reservations.listing_id
+  join public.restaurants on restaurants.id = listings.restaurant_id
+  join public.profiles on profiles.id = reservations.user_id
+  where restaurants.owner_id = current_user_id
+    and (reservations.reserved_at at time zone 'America/Guayaquil')::date = target_day
+    and reservations.status = 'reserved'
+  order by reservations.reserved_at asc;
 end;
 $$;
 
-grant execute on function public.complete_reservation_after_payment(uuid) to authenticated;
+grant execute on function public.fetch_manager_todays_reservations(date) to authenticated;
 
 insert into storage.buckets (id, name, public)
 values ('restaurant-media', 'restaurant-media', true)
@@ -505,6 +613,26 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
+
+drop trigger if exists on_auth_user_updated on auth.users;
+create trigger on_auth_user_updated
+after update on auth.users
+for each row execute procedure public.handle_new_user();
+
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table public.reservations;
+  exception
+    when duplicate_object then null;
+  end;
+end
+$$;
+
+drop trigger if exists on_restaurant_role_sync on public.restaurants;
+create trigger on_restaurant_role_sync
+after insert or update or delete on public.restaurants
+for each row execute procedure public.sync_profile_role_from_restaurant();
 
 insert into public.restaurants (name, city)
 select seed.name, seed.city
@@ -630,3 +758,4 @@ where seed.restaurant_id is not null
     where existing.title = seed.title
       and existing.restaurant_id = seed.restaurant_id
   );
+  

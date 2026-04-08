@@ -1,7 +1,8 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { Image } from 'expo-image'
 
-import { colors, typography } from '../../theme'
+import { colors, theme, typography } from '../../theme'
 import type { Restaurant } from '../../types/marketplace'
 import { getBestOffer } from '../../utils/marketplace'
 
@@ -22,7 +23,7 @@ export function RestaurantCard({ restaurant, onPress }: Props) {
     >
       <View style={styles.imageWrap}>
         {restaurant.coverImageUrl ? (
-          <Image source={{ uri: restaurant.coverImageUrl }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: restaurant.coverImageUrl }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Text allowFontScaling style={styles.placeholderText}>
@@ -31,57 +32,81 @@ export function RestaurantCard({ restaurant, onPress }: Props) {
           </View>
         )}
 
-        <View style={styles.ratingBadge}>
-          <Text allowFontScaling style={styles.ratingValue}>
-            {restaurant.rating.toFixed(1)}
-          </Text>
-          <Ionicons name="star" size={11} color="#C9A227" />
-          <Text allowFontScaling style={styles.reviewCount}>
-            ({restaurant.reviewCount})
-          </Text>
-        </View>
+        <View style={styles.imageScrim} />
 
-        {quantity > 0 && quantity <= 3 ? (
-          <View style={styles.stockBadge}>
-            <Text allowFontScaling style={styles.stockBadgeText}>
-              Solo {quantity} disponibles
+        <View style={styles.topOverlayRow}>
+          <View style={styles.cityChip}>
+            <Ionicons name="location-outline" size={12} color={colors.textInverse} />
+            <Text allowFontScaling numberOfLines={1} style={styles.cityChipText}>
+              {restaurant.city}
             </Text>
           </View>
-        ) : null}
+
+          <View style={styles.ratingBadge}>
+            <Ionicons name="star" size={12} color={colors.highlight} />
+            <Text allowFontScaling style={styles.ratingValue}>
+              {restaurant.rating.toFixed(1)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.bottomOverlayRow}>
+          <View style={styles.priceBadge}>
+            <Text allowFontScaling style={styles.priceLabel}>
+              desde
+            </Text>
+            <Text allowFontScaling style={styles.priceValue}>
+              ${restaurant.approximatePrice.toFixed(2)}
+            </Text>
+          </View>
+
+          {quantity > 0 && quantity <= 3 ? (
+            <View style={styles.stockBadge}>
+              <Text allowFontScaling style={styles.stockBadgeText}>
+                Quedan {quantity}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       <View style={styles.body}>
-        <View style={styles.topRow}>
+        <View style={styles.headerRow}>
           <View style={styles.titleBlock}>
             <Text allowFontScaling numberOfLines={1} style={styles.name}>
               {restaurant.name}
             </Text>
-            <Text allowFontScaling style={styles.meta}>
-              ${restaurant.approximatePrice.toFixed(2)} · {restaurant.category} ·{' '}
-              {restaurant.distanceKm.toFixed(1)} km
+            <Text allowFontScaling numberOfLines={1} style={styles.subline}>
+              {restaurant.category} · {restaurant.distanceKm.toFixed(1)} km
             </Text>
           </View>
+
           <View style={styles.discountPill}>
             <Text allowFontScaling style={styles.discountText}>
-              -{restaurant.discountLabel}
+              {restaurant.discountLabel}
             </Text>
           </View>
         </View>
 
-        <View style={styles.infoRow}>
-          <View style={styles.timePill}>
-            <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
-            <Text allowFontScaling style={styles.timeText}>
-              {restaurant.pickupSummary}
+        <View style={styles.signalRow}>
+          <View style={styles.signalChip}>
+            <Ionicons name="time-outline" size={13} color={colors.primary} />
+            <Text allowFontScaling numberOfLines={1} style={styles.signalText}>
+              {restaurant.pickupSummary.replace('Recogida ', '')}
             </Text>
           </View>
-          <View style={styles.statusRow}>
+
+          <View style={[styles.statusChip, restaurant.isOpen ? styles.statusChipOpen : styles.statusChipClosed]}>
             <View style={[styles.dot, restaurant.isOpen ? styles.dotOpen : styles.dotClosed]} />
             <Text allowFontScaling style={styles.statusText}>
-              {restaurant.isOpen ? 'Abierto' : 'Cerrado'}
+              {restaurant.openLabel}
             </Text>
           </View>
         </View>
+
+        <Text allowFontScaling numberOfLines={2} style={styles.description}>
+          {restaurant.description}
+        </Text>
       </View>
     </Pressable>
   )
@@ -90,90 +115,129 @@ export function RestaurantCard({ restaurant, onPress }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
+    borderRadius: theme.radii.lg,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2
+    ...theme.shadows.card
   },
   cardPressed: {
-    opacity: 0.96
+    opacity: 0.97,
+    transform: [{ scale: 0.996 }]
   },
   imageWrap: {
     position: 'relative'
   },
   image: {
     width: '100%',
-    height: 176
+    height: 196
   },
   imagePlaceholder: {
     width: '100%',
-    height: 176,
-    backgroundColor: colors.muted,
+    height: 196,
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center'
   },
   placeholderText: {
     ...typography.overline,
-    opacity: 0.4,
-    textTransform: 'uppercase'
+    color: colors.textSecondary,
+    opacity: 0.55
   },
-  ratingBadge: {
+  imageScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.16)'
+  },
+  topOverlayRow: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
+    top: 14,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10
+  },
+  bottomOverlayRow: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 10
+  },
+  cityChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
     gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderRadius: theme.radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    maxWidth: '68%'
+  },
+  cityChipText: {
+    ...typography.micro,
+    color: colors.textInverse,
+    fontWeight: '700'
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.surface,
+    borderRadius: theme.radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 6
   },
   ratingValue: {
     ...typography.micro,
-    fontSize: 12,
-    lineHeight: 15,
-    fontWeight: '700',
-    color: colors.text
+    color: colors.text,
+    fontWeight: '700'
   },
-  reviewCount: {
+  priceBadge: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minWidth: 92
+  },
+  priceLabel: {
     ...typography.micro,
-    fontSize: 10,
-    lineHeight: 13,
-    color: colors.textSecondary
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  priceValue: {
+    ...typography.title,
+    color: colors.primary,
+    fontWeight: '700'
   },
   stockBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: colors.ecuadorRed,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8
+    backgroundColor: colors.error,
+    borderRadius: theme.radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 7
   },
   stockBadgeText: {
     ...typography.micro,
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4
+    color: colors.textInverse,
+    fontWeight: '700',
+    letterSpacing: 0.35,
+    textTransform: 'uppercase'
   },
   body: {
-    padding: 16
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 16
   },
-  topRow: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: 10
   },
@@ -184,55 +248,62 @@ const styles = StyleSheet.create({
   name: {
     ...typography.title,
     fontSize: 18,
-    lineHeight: 23,
+    lineHeight: 22,
     fontWeight: '700',
     color: colors.text
   },
-  meta: {
+  subline: {
     ...typography.caption,
-    marginTop: 4,
+    marginTop: 3,
     color: colors.textSecondary
   },
   discountPill: {
-    backgroundColor: 'rgba(26, 58, 92, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
+    backgroundColor: colors.accentSoft,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     flexShrink: 0
   },
   discountText: {
     ...typography.micro,
-    color: colors.primary,
+    color: colors.primaryPressed,
     fontWeight: '700'
   },
-  infoRow: {
+  signalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    gap: 12
+    gap: 8,
+    marginTop: 12
   },
-  timePill: {
+  signalChip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.muted,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-    gap: 5,
-    maxWidth: '65%'
+    gap: 6,
+    backgroundColor: colors.primaryMuted,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8
   },
-  timeText: {
+  signalText: {
     ...typography.micro,
-    flexShrink: 1,
-    color: colors.textSecondary
+    color: colors.primaryPressed,
+    fontWeight: '700',
+    flexShrink: 1
   },
-  statusRow: {
+  statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8
+  },
+  statusChipOpen: {
+    backgroundColor: colors.successSoft
+  },
+  statusChipClosed: {
+    backgroundColor: colors.errorSoft
   },
   dot: {
     width: 6,
@@ -243,10 +314,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success
   },
   dotClosed: {
-    backgroundColor: colors.ecuadorRed
+    backgroundColor: colors.error
   },
   statusText: {
     ...typography.micro,
-    color: colors.textSecondary
+    color: colors.text,
+    fontWeight: '700'
+  },
+  description: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 10,
+    lineHeight: 18
   }
 })

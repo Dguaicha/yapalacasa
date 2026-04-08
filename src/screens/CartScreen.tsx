@@ -8,9 +8,7 @@ import { StackHeader } from '../components/ui/StackHeader'
 import { PrimaryButton } from '../components/ui/PrimaryButton'
 import { SecondaryButton } from '../components/ui/SecondaryButton'
 import { useCart } from '../context/CartContext'
-import { supabase } from '../services/supabase'
-import { kushkiService } from '../services/kushki'
-import { cancelMyReservation } from '../services/reservations'
+import { cancelMyReservation, reserveListing } from '../services/reservations'
 import { colors, typography } from '../theme'
 
 export function CartScreen() {
@@ -19,49 +17,28 @@ export function CartScreen() {
 
   async function handleCheckout() {
     if (items.length === 0) {
-      Alert.alert('Carrito vacío', 'Añade una bolsa antes de confirmar la reserva.')
+      Alert.alert('Carrito vacio', 'Anade una bolsa antes de confirmar la reserva.')
       return
     }
 
     setLoading(true)
 
-    const reservations: Array<{ id: string; amount: number; title: string }> = []
+    const reservations: Array<{ id: string; title: string }> = []
 
     try {
       for (const item of items) {
-        const { data, error } = await supabase.rpc('reserve_listing', {
-          target_listing_id: item.offer.id
-        })
+        const data = await reserveListing(item.offer.id)
 
-        if (error) {
-          throw new Error(`Error reservando ${item.offer.title}: ${error.message}`)
-        }
-
-        if (data && data.id) {
+        if (data?.id) {
           reservations.push({
             id: data.id,
-            amount: item.offer.salePrice,
             title: item.offer.title
           })
         }
       }
 
-      const tokenResult = await kushkiService.generateToken(total)
-      if (!tokenResult.success) {
-        throw new Error('Error al crear el pago.')
-      }
-
-      const paymentResult = await kushkiService.confirmPayment(reservations, tokenResult.token)
-      if (!paymentResult.success) {
-        // If some reservations were completed before the failure, we need to handle them
-        if (paymentResult.completedReservations && paymentResult.completedReservations.length > 0) {
-          console.error('Partial payment success - some reservations completed:', paymentResult.completedReservations)
-        }
-        throw new Error(paymentResult.error || 'Error al procesar el pago.')
-      }
-
       await clearCart()
-      Alert.alert('Pago exitoso', 'Tu reserva está confirmada. Puedes verla en Mis reservas.', [
+      Alert.alert('Reserva confirmada', 'Tu pedido quedo reservado. Pagas directamente al recoger.', [
         { text: 'Ver mis reservas', onPress: () => router.replace('/mis-reservas') }
       ])
     } catch (err: unknown) {
@@ -70,7 +47,8 @@ export function CartScreen() {
           reservations.map((reservation) => cancelMyReservation(reservation.id))
         )
       }
-      Alert.alert('Error en el checkout', err instanceof Error ? err.message : String(err))
+
+      Alert.alert('Error en la reserva', err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -90,13 +68,13 @@ export function CartScreen() {
       <StackHeader title="Mi carrito" variant="close" />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text allowFontScaling style={styles.lead}>
-          Revisa tu pedido antes de pagar.
+          Revisa tu pedido antes de confirmar la reserva.
         </Text>
 
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text allowFontScaling style={styles.emptyTitle}>
-              Tu carrito está vacío
+              Tu carrito esta vacio
             </Text>
             <Text allowFontScaling style={styles.emptyBody}>
               Explora negocios cercanos y rescata una bolsa sorpresa.
@@ -141,7 +119,7 @@ export function CartScreen() {
 
             <View style={styles.summary}>
               <Text allowFontScaling style={styles.summaryLabel}>
-                Total a pagar
+                Total estimado al recoger
               </Text>
               <Text allowFontScaling style={styles.summaryAmount}>
                 ${total.toFixed(2)}
@@ -150,11 +128,11 @@ export function CartScreen() {
               <View style={styles.trustRow}>
                 <View style={styles.trustDot} />
                 <Text allowFontScaling style={styles.trustCopy}>
-                  Pago seguro con Kushki. No guardamos los datos de tu tarjeta.
+                  Beta en Quito y Guayaquil: reservas ahora y pagas al recoger en el local.
                 </Text>
               </View>
 
-              <PrimaryButton title="Pagar con tarjeta" onPress={handleCheckout} loading={loading} className="w-full" />
+              <PrimaryButton title="Confirmar reserva" onPress={handleCheckout} loading={loading} className="w-full" />
             </View>
           </>
         )}

@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salvar Manager Portal</title>
+    <style>
+      :root {
+        --bg: #f8f6f1;
+        --surface: #ffffff;
+        --surface-alt: #eef2f7;
+        --border: #d7dee8;
+        --text: #18212f;
+        --text-muted: #5c677d;
+        --primary: #1e3a8a;
+        --primary-pressed: #172c68;
+        --highlight: #fbbf24;
+        --danger: #dc2626;
+        --success: #2f6b3b;
+        --shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(251, 191, 36, 0.16), transparent 22rem),
+          radial-gradient(circle at bottom right, rgba(30, 58, 138, 0.12), transparent 26rem),
+          var(--bg);
+        color: var(--text);
+      }
+      .shell {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 24px 16px 56px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .brand {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary);
+      }
+      .muted { color: var(--text-muted); }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+      .hero {
+        padding: 24px;
+        display: grid;
+        grid-template-columns: 1.6fr 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .hero h1 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.05;
+      }
+      .eyebrow {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--primary);
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .pill {
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .pill-primary { background: var(--primary); color: white; }
+      .pill-muted { background: #fff3c4; color: var(--primary-pressed); }
+      .auth-grid, .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .auth-box, .stat {
+        background: var(--surface-alt);
+        border-radius: 18px;
+        padding: 16px;
+      }
+      .stat strong {
+        display: block;
+        font-size: 28px;
+        color: var(--primary);
+      }
+      .panel {
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--text-muted);
+        font-weight: 700;
+      }
+      input {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 15px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .button {
+        border: 0;
+        border-radius: 16px;
+        padding: 14px 16px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .button-primary {
+        background: var(--primary);
+        color: white;
+      }
+      .button-primary:hover { background: var(--primary-pressed); }
+      .button-secondary {
+        background: var(--surface-alt);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      .button-danger {
+        background: var(--danger);
+        color: white;
+      }
+      .button-wide {
+        width: 100%;
+        min-height: 56px;
+        font-size: 16px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .row-between {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .hidden { display: none !important; }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .status-live { background: #e7f4ea; color: var(--success); }
+      .status-off { background: #fee2e2; color: var(--danger); }
+      .table-wrap {
+        overflow: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        padding: 14px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--text-muted);
+      }
+      .code {
+        font-weight: 700;
+        color: var(--primary);
+        letter-spacing: .06em;
+      }
+      .empty {
+        padding: 28px;
+        text-align: center;
+        color: var(--text-muted);
+      }
+      .notice {
+        margin-bottom: 16px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        font-size: 14px;
+      }
+      .notice-info {
+        background: #dbe7ff;
+        color: var(--primary-pressed);
+      }
+      .notice-error {
+        background: #fee2e2;
+        color: var(--danger);
+      }
+      @media (max-width: 900px) {
+        .hero, .form-grid, .auth-grid, .stats-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+    <script src="./manager-config.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <div>
+          <div class="brand">Salvar Manager Portal</div>
+          <div class="muted">Panel operativo para retiros en local</div>
+        </div>
+        <div id="sessionStatus" class="status status-off">Sin sesion</div>
+      </div>
+
+      <section class="card hero">
+        <div>
+          <div class="eyebrow">Beta de operaciones</div>
+          <h1>Confirma retiros en tiempo real y entrega recibos digitales</h1>
+          <p class="muted">
+            Este panel muestra las reservas activas de hoy, los codigos de retiro y el contacto del cliente.
+          </p>
+          <div class="pill-row">
+            <div class="pill pill-primary">Tiempo real con Supabase Realtime</div>
+            <div class="pill pill-muted">Confirmacion de retiro con un clic</div>
+          </div>
+        </div>
+        <div class="auth-grid">
+          <div class="auth-box">
+            <strong>1</strong>
+            <div>Inicia sesion con enlace seguro por correo</div>
+          </div>
+          <div class="auth-box">
+            <strong>2</strong>
+            <div>Valida el codigo del cliente al recoger</div>
+          </div>
+          <div class="auth-box">
+            <strong>3</strong>
+            <div>Confirma y envia recibo digital</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="authPanel" class="card panel">
+        <div class="row-between" style="margin-bottom:16px;">
+            <div>
+              <div class="eyebrow">Acceso manager</div>
+            <h2 style="margin:0;">Login por correo</h2>
+          </div>
+        </div>
+        <div id="authNotice" class="notice notice-info hidden"></div>
+        <div class="form-grid">
+          <div>
+            <label for="emailInput">Correo</label>
+            <input id="emailInput" type="email" placeholder="manager@tu-negocio.com" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:16px;">
+          <button id="sendOtpButton" class="button button-primary">Enviar enlace de acceso</button>
+          <button id="signOutButton" class="button button-secondary hidden">Cerrar sesion</button>
+        </div>
+      </section>
+
+      <section id="dashboardPanel" class="hidden">
+        <div class="stats-grid" style="margin-bottom:20px;">
+          <div class="card stat">
+            <strong id="activeCount">0</strong>
+            <div>Reservas activas hoy</div>
+          </div>
+          <div class="card stat">
+            <strong id="receiptCount">0</strong>
+            <div>Recibos enviados esta sesion</div>
+          </div>
+          <div class="card stat">
+            <strong id="refreshTime">--</strong>
+            <div>Ultima sincronizacion</div>
+          </div>
+        </div>
+
+        <section class="card panel">
+          <div class="row-between" style="margin-bottom:16px;">
+            <div>
+              <div class="eyebrow">Reservas de hoy</div>
+              <h2 style="margin:0;">Codigos activos</h2>
+            </div>
+            <button id="refreshButton" class="button button-secondary">Actualizar</button>
+          </div>
+          <div id="dashboardNotice" class="notice notice-info hidden"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Codigo</th>
+                  <th>Cliente</th>
+                  <th>Bolsa</th>
+                  <th>Total</th>
+                  <th>Hora</th>
+                  <th>Accion</th>
+                </tr>
+              </thead>
+              <tbody id="reservationsBody">
+                <tr><td colspan="6" class="empty">Cargando reservas...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <script type="module">
+      import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+      const config = window.SALVAR_MANAGER_CONFIG
+
+      const authPanel = document.getElementById('authPanel')
+      const dashboardPanel = document.getElementById('dashboardPanel')
+      const authNotice = document.getElementById('authNotice')
+      const dashboardNotice = document.getElementById('dashboardNotice')
+      const emailInput = document.getElementById('emailInput')
+      const sendOtpButton = document.getElementById('sendOtpButton')
+      const signOutButton = document.getElementById('signOutButton')
+      const refreshButton = document.getElementById('refreshButton')
+      const reservationsBody = document.getElementById('reservationsBody')
+      const activeCount = document.getElementById('activeCount')
+      const receiptCount = document.getElementById('receiptCount')
+      const refreshTime = document.getElementById('refreshTime')
+      const sessionStatus = document.getElementById('sessionStatus')
+
+      let supabase = null
+      let receiptCounter = 0
+      let currentSession = null
+      let realtimeChannel = null
+
+      function showNotice(target, message, kind = 'info') {
+        target.textContent = message
+        target.className = `notice ${kind === 'error' ? 'notice-error' : 'notice-info'}`
+      }
+
+      function hideNotice(target) {
+        target.className = 'notice notice-info hidden'
+        target.textContent = ''
+      }
+
+      function parseAuthParams() {
+        const url = new URL(window.location.href)
+        const hashParams = new URLSearchParams(url.hash.startsWith('#') ? url.hash.slice(1) : url.hash)
+        return {
+          accessToken: url.searchParams.get('access_token') ?? hashParams.get('access_token'),
+          refreshToken: url.searchParams.get('refresh_token') ?? hashParams.get('refresh_token'),
+          code: url.searchParams.get('code') ?? hashParams.get('code'),
+          tokenHash: url.searchParams.get('token_hash') ?? hashParams.get('token_hash'),
+          type: url.searchParams.get('type') ?? hashParams.get('type'),
+        }
+      }
+
+      async function completeEmailAuthIfNeeded() {
+        const { accessToken, refreshToken, code, tokenHash, type } = parseAuthParams()
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (error) throw error
+        } else if (tokenHash && type) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type,
+          })
+          if (error) throw error
+        } else if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          if (error) throw error
+        } else {
+          return
+        }
+
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+
+      function setSignedInUi(signedIn) {
+        authPanel.classList.toggle('hidden', signedIn)
+        dashboardPanel.classList.toggle('hidden', !signedIn)
+        signOutButton.classList.toggle('hidden', !signedIn)
+        sessionStatus.className = signedIn ? 'status status-live' : 'status status-off'
+        sessionStatus.textContent = signedIn ? 'Sesion activa' : 'Sin sesion'
+      }
+
+      function formatTime(value) {
+        return new Date(value).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })
+      }
+
+      function formatPhone(value) {
+        return value || 'Sin telefono'
+      }
+
+      async function fetchReservations() {
+        if (!supabase) return
+
+        hideNotice(dashboardNotice)
+        const today = new Date().toISOString().slice(0, 10)
+        const { data, error } = await supabase.rpc('fetch_manager_todays_reservations', {
+          target_day: today,
+        })
+
+        if (error) {
+          showNotice(dashboardNotice, error.message, 'error')
+          reservationsBody.innerHTML = '<tr><td colspan="6" class="empty">No se pudieron cargar las reservas.</td></tr>'
+          return
+        }
+
+        activeCount.textContent = String(data.length)
+        refreshTime.textContent = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })
+
+        if (!data.length) {
+          reservationsBody.innerHTML = '<tr><td colspan="6" class="empty">No hay reservas activas hoy.</td></tr>'
+          return
+        }
+
+        reservationsBody.innerHTML = data.map((reservation) => `
+          <tr>
+            <td>
+              <div class="code">${reservation.pickup_code}</div>
+              <div class="muted">${reservation.status}</div>
+            </td>
+            <td>
+              <strong>${reservation.customer_name || 'Cliente Salvar'}</strong><br />
+              <span class="muted">${formatPhone(reservation.customer_phone)}</span>
+            </td>
+            <td>
+              <strong>${reservation.listing_title || 'Bolsa sorpresa'}</strong><br />
+              <span class="muted">${reservation.restaurant_name || ''}</span>
+            </td>
+            <td><strong>$${Number(reservation.total_price || 0).toFixed(2)}</strong></td>
+            <td>${formatTime(reservation.reserved_at)}</td>
+            <td>
+              <button
+                class="button button-primary button-wide"
+                data-reservation-id="${reservation.reservation_id}"
+                data-pickup-code="${reservation.pickup_code}"
+              >
+                Confirm Pickup
+              </button>
+            </td>
+          </tr>
+        `).join('')
+      }
+
+      async function subscribeRealtime() {
+        if (!supabase) return
+
+        if (realtimeChannel) {
+          await supabase.removeChannel(realtimeChannel)
+        }
+
+        realtimeChannel = supabase
+          .channel('manager-reservations-live')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+            fetchReservations()
+          })
+          .subscribe()
+      }
+
+      async function confirmPickup(reservationId, pickupCode) {
+        hideNotice(dashboardNotice)
+
+        const { data: sessionData } = await supabase.auth.getSession()
+        const accessToken = sessionData.session?.access_token
+
+        const response = await fetch(`${config.supabaseUrl}/functions/v1/confirm-pickup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ reservationId, pickupCode }),
+        })
+
+        const payload = await response.json()
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'No se pudo confirmar el retiro')
+        }
+
+        receiptCounter += 1
+        receiptCount.textContent = String(receiptCounter)
+        showNotice(
+          dashboardNotice,
+          payload.receiptSent
+            ? 'Retiro confirmado y recibo digital enviado.'
+            : 'Retiro confirmado. El recibo quedo registrado, pero el envio por email necesita configuracion.',
+          'info'
+        )
+        await fetchReservations()
+      }
+
+      function bindRowActions() {
+        reservationsBody.addEventListener('click', async (event) => {
+          const button = event.target.closest('button[data-reservation-id]')
+          if (!button) return
+
+          button.disabled = true
+          button.textContent = 'Confirmando...'
+
+          try {
+            await confirmPickup(button.dataset.reservationId, button.dataset.pickupCode)
+          } catch (error) {
+            showNotice(dashboardNotice, error.message || 'Error al confirmar retiro', 'error')
+          } finally {
+            button.disabled = false
+            button.textContent = 'Confirm Pickup'
+          }
+        })
+      }
+
+      async function bootstrap() {
+        if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
+          showNotice(
+            authNotice,
+            'Falta manager-config.js. Copia manager-config.example.js a manager-config.js y agrega tus credenciales publicas de Supabase.',
+            'error'
+          )
+          return
+        }
+
+        supabase = createClient(config.supabaseUrl, config.supabaseAnonKey)
+        bindRowActions()
+        await completeEmailAuthIfNeeded()
+
+        const { data: sessionData } = await supabase.auth.getSession()
+        currentSession = sessionData.session
+        setSignedInUi(Boolean(currentSession))
+
+        if (currentSession) {
+          await fetchReservations()
+          await subscribeRealtime()
+        }
+
+        sendOtpButton.addEventListener('click', async () => {
+          hideNotice(authNotice)
+          const email = emailInput.value.trim().toLowerCase()
+
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showNotice(authNotice, 'Ingresa un correo valido.', 'error')
+            return
+          }
+
+          const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+              shouldCreateUser: false,
+              emailRedirectTo: window.location.href,
+            },
+          })
+
+          if (error) {
+            showNotice(authNotice, error.message, 'error')
+            return
+          }
+
+          showNotice(authNotice, 'Revisa tu correo y abre el enlace seguro para entrar al panel.', 'info')
+        })
+
+        signOutButton.addEventListener('click', async () => {
+          await supabase.auth.signOut()
+          if (realtimeChannel) {
+            await supabase.removeChannel(realtimeChannel)
+          }
+          currentSession = null
+          setSignedInUi(false)
+        })
+
+        refreshButton.addEventListener('click', fetchReservations)
+      }
+
+      bootstrap()
+    </script>
+  </body>
+</html>

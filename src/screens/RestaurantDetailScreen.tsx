@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import { Image } from 'expo-image'
 
 import { LogoSalvar } from '../components/branding/LogoSalvar'
 import { OfferCard } from '../components/ui/OfferCard'
@@ -9,7 +10,7 @@ import { PrimaryButton } from '../components/ui/PrimaryButton'
 import { SecondaryButton } from '../components/ui/SecondaryButton'
 import { useCart } from '../context/CartContext'
 import { useMarketplace } from '../hooks/useMarketplace'
-import { colors, typography } from '../theme'
+import { colors, theme, typography } from '../theme'
 import { getBestOffer } from '../utils/marketplace'
 
 export function RestaurantDetailScreen() {
@@ -43,32 +44,56 @@ export function RestaurantDetailScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.toolbar}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
         <Text allowFontScaling numberOfLines={1} style={styles.toolbarTitle}>
           {restaurant.name}
         </Text>
+        <View style={styles.toolbarSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.heroWrap}>
-          {restaurant.coverImageUrl ? (
-            <Image source={{ uri: restaurant.coverImageUrl }} style={styles.hero} resizeMode="cover" />
-          ) : (
-            <View style={[styles.hero, styles.heroPlaceholder]}>
-              <LogoSalvar size={80} />
+        <View style={styles.heroShell}>
+          <View style={styles.heroWrap}>
+            {restaurant.coverImageUrl ? (
+              <Image source={{ uri: restaurant.coverImageUrl }} style={styles.hero} contentFit="cover" cachePolicy="memory-disk" />
+            ) : (
+              <View style={[styles.hero, styles.heroPlaceholder]}>
+                <LogoSalvar size={76} />
+              </View>
+            )}
+
+            <View style={styles.heroScrim} />
+
+            <View style={styles.heroTopBadges}>
+              <View style={styles.heroCategoryBadge}>
+                <Text allowFontScaling style={styles.heroCategoryText}>
+                  {restaurant.category}
+                </Text>
+              </View>
+              <View style={[styles.heroStateBadge, restaurant.isOpen ? styles.heroStateOpen : styles.heroStateClosed]}>
+                <Text allowFontScaling style={styles.heroStateText}>
+                  {restaurant.openLabel}
+                </Text>
+              </View>
             </View>
-          )}
-          <View style={styles.heroBadges}>
-            <View style={styles.badgeNeutral}>
-              <Text allowFontScaling style={styles.badgeNeutralText}>
-                {restaurant.category}
-              </Text>
-            </View>
-            <View style={[styles.badgeState, restaurant.isOpen ? styles.badgeOpen : styles.badgeClosed]}>
-              <Text allowFontScaling style={styles.badgeStateText}>
-                {restaurant.isOpen ? 'Abierto' : 'Cerrado'}
-              </Text>
+
+            <View style={styles.heroBottomRow}>
+              <View style={styles.heroPriceCard}>
+                <Text allowFontScaling style={styles.heroPriceLabel}>
+                  mejor bolsa desde
+                </Text>
+                <Text allowFontScaling style={styles.heroPriceValue}>
+                  ${restaurant.approximatePrice.toFixed(2)}
+                </Text>
+              </View>
+
+              <View style={styles.heroRatingBadge}>
+                <Ionicons name="star" size={13} color={colors.highlight} />
+                <Text allowFontScaling style={styles.heroRatingText}>
+                  {restaurant.rating.toFixed(1)}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -77,58 +102,60 @@ export function RestaurantDetailScreen() {
           <Text allowFontScaling style={styles.restName}>
             {restaurant.name}
           </Text>
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={15} color="#C9A227" />
-            <Text allowFontScaling style={styles.ratingValue}>
-              {restaurant.rating.toFixed(1)}
-            </Text>
-            <Text allowFontScaling style={styles.ratingMeta}>
-              ({restaurant.reviewCount} reseñas)
-            </Text>
-            <Text allowFontScaling style={styles.dot}>
-              ·
-            </Text>
-            <Text allowFontScaling style={styles.ratingMeta}>
-              {restaurant.distanceKm.toFixed(1)} km
-            </Text>
-          </View>
+
+          <Text allowFontScaling style={styles.subMeta}>
+            {restaurant.city} · {restaurant.distanceKm.toFixed(1)} km · {restaurant.discountLabel}
+          </Text>
 
           <Text allowFontScaling style={styles.description}>
             {restaurant.description}
           </Text>
 
-          <View style={styles.cards}>
+          <View style={styles.signalRow}>
+            <View style={styles.signalChip}>
+              <Ionicons name="time-outline" size={14} color={colors.primary} />
+              <Text allowFontScaling style={styles.signalText}>
+                {restaurant.pickupSummary}
+              </Text>
+            </View>
+
+            <View style={styles.signalChip}>
+              <Ionicons name="wallet-outline" size={14} color={colors.primary} />
+              <Text allowFontScaling style={styles.signalText}>
+                Pagas al recoger
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.infoGrid}>
             <View style={styles.infoCard}>
               <View style={styles.infoCardHead}>
                 <Ionicons name="location-outline" size={18} color={colors.primary} />
                 <Text allowFontScaling style={styles.infoLabel}>
-                  Dirección
+                  Direccion
                 </Text>
               </View>
               <Text allowFontScaling style={styles.infoValue}>
                 {restaurant.address}
               </Text>
-              <Text allowFontScaling style={styles.infoHint}>
-                {restaurant.pickupNotes || 'Muestra tu reserva al recoger.'}
-              </Text>
             </View>
 
             <View style={styles.infoCard}>
               <View style={styles.infoCardHead}>
-                <Ionicons name="time-outline" size={18} color={colors.primary} />
+                <Ionicons name="receipt-outline" size={18} color={colors.primary} />
                 <Text allowFontScaling style={styles.infoLabel}>
-                  Horario de recogida
+                  Retiro
                 </Text>
               </View>
               <Text allowFontScaling style={styles.infoValue}>
-                {restaurant.pickupSummary}
+                {restaurant.pickupNotes || 'Muestra tu codigo de reserva al recoger.'}
               </Text>
             </View>
           </View>
 
           <View style={styles.ctaBlock}>
             <PrimaryButton
-              title="Añadir mejor bolsa"
+              title="Anadir mejor bolsa"
               loading={false}
               onPress={() => {
                 if (!bestOffer) return
@@ -137,18 +164,23 @@ export function RestaurantDetailScreen() {
                   name: restaurant.name,
                   city: restaurant.city
                 })
-                Alert.alert('Añadido', 'La bolsa sorpresa fue añadida al carrito.')
+                Alert.alert('Anadido', 'La mejor bolsa fue anadida al carrito.')
               }}
             />
             <SecondaryButton title="Ver mi carrito" onPress={() => router.push('/carrito')} />
           </View>
 
           <View style={styles.offersHead}>
-            <Text allowFontScaling style={styles.offersTitle}>
-              Bolsas disponibles
-            </Text>
+            <View>
+              <Text allowFontScaling style={styles.offersEyebrow}>
+                Seleccion disponible
+              </Text>
+              <Text allowFontScaling style={styles.offersTitle}>
+                Bolsas activas
+              </Text>
+            </View>
             <Text allowFontScaling style={styles.offersSub}>
-              Elige una bolsa para rescatar.
+              {restaurant.offers.length} opciones
             </Text>
           </View>
 
@@ -163,14 +195,14 @@ export function RestaurantDetailScreen() {
               <OfferCard
                 key={offer.id}
                 offer={offer}
-                actionLabel="Añadir"
+                actionLabel="Anadir"
                 onPress={() => {
                   addToCart(offer, {
                     id: restaurant.id,
                     name: restaurant.name,
                     city: restaurant.city
                   })
-                  Alert.alert('Añadido', 'La bolsa fue añadida al carrito.')
+                  Alert.alert('Anadido', 'La bolsa fue anadida al carrito.')
                 }}
               />
             ))
@@ -184,13 +216,13 @@ export function RestaurantDetailScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.surface
+    backgroundColor: colors.background
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.surface
+    backgroundColor: colors.background
   },
   padded: {
     padding: 24
@@ -207,119 +239,185 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.surface
+    backgroundColor: colors.background
   },
   backBtn: {
-    padding: 4,
-    marginLeft: -4
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   toolbarTitle: {
     ...typography.navTitle,
     flex: 1,
-    marginLeft: 12
+    textAlign: 'center',
+    marginHorizontal: 8
+  },
+  toolbarSpacer: {
+    width: 40
   },
   scroll: {
-    paddingBottom: 40
+    paddingBottom: 36
+  },
+  heroShell: {
+    paddingHorizontal: 16,
+    paddingTop: 6
   },
   heroWrap: {
-    position: 'relative'
+    position: 'relative',
+    borderRadius: 28,
+    overflow: 'hidden',
+    ...theme.shadows.card
   },
   hero: {
     width: '100%',
-    height: 224
+    height: 272
   },
   heroPlaceholder: {
-    backgroundColor: colors.muted,
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center'
   },
-  heroBadges: {
+  heroScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.18)'
+  },
+  heroTopBadges: {
     position: 'absolute',
-    bottom: 16,
+    top: 16,
     left: 16,
+    right: 16,
     flexDirection: 'row',
-    gap: 8
+    justifyContent: 'space-between',
+    gap: 10
   },
-  badgeNeutral: {
+  heroCategoryBadge: {
     backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
     borderRadius: 999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2
+    paddingHorizontal: 12,
+    paddingVertical: 7
   },
-  badgeNeutralText: {
+  heroCategoryText: {
     ...typography.micro,
     color: colors.text,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5
+    letterSpacing: 0.45
   },
-  badgeState: {
+  heroStateBadge: {
+    borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999
+    paddingVertical: 7
   },
-  badgeOpen: {
-    backgroundColor: 'rgba(46, 125, 50, 0.92)'
+  heroStateOpen: {
+    backgroundColor: 'rgba(47, 107, 59, 0.92)'
   },
-  badgeClosed: {
-    backgroundColor: 'rgba(183, 28, 28, 0.92)'
+  heroStateClosed: {
+    backgroundColor: 'rgba(220, 38, 38, 0.92)'
   },
-  badgeStateText: {
+  heroStateText: {
     ...typography.micro,
-    color: '#FFFFFF',
+    color: colors.textInverse,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5
+    letterSpacing: 0.45
+  },
+  heroBottomRow: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 12
+  },
+  heroPriceCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minWidth: 128
+  },
+  heroPriceLabel: {
+    ...typography.micro,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.45
+  },
+  heroPriceValue: {
+    ...typography.heading2,
+    color: colors.primary,
+    marginTop: 4
+  },
+  heroRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  heroRatingText: {
+    ...typography.micro,
+    color: colors.text,
+    fontWeight: '700'
   },
   section: {
-    padding: 24
+    paddingHorizontal: 16,
+    paddingTop: 18
   },
   restName: {
     ...typography.heading1,
-    fontSize: 26,
-    lineHeight: 32
+    fontSize: 28,
+    lineHeight: 34
   },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    flexWrap: 'wrap',
-    gap: 4
-  },
-  ratingValue: {
-    ...typography.caption,
-    fontWeight: '700',
-    color: colors.text
-  },
-  ratingMeta: {
-    ...typography.caption,
-    color: colors.textSecondary
-  },
-  dot: {
+  subMeta: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginHorizontal: 2
+    marginTop: 6
   },
   description: {
     ...typography.body,
     color: colors.textSecondary,
-    marginTop: 16,
+    marginTop: 14,
     lineHeight: 23
   },
-  cards: {
-    gap: 14,
-    marginTop: 24,
-    marginBottom: 8
+  signalRow: {
+    gap: 10,
+    marginTop: 18
+  },
+  signalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  signalText: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
+    flexShrink: 1
+  },
+  infoGrid: {
+    gap: 12,
+    marginTop: 18
   },
   infoCard: {
-    backgroundColor: colors.muted,
-    padding: 16,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border
   },
@@ -327,10 +425,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 6
+    marginBottom: 8
   },
   infoLabel: {
     ...typography.overline,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.6
   },
@@ -339,34 +438,40 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600'
   },
-  infoHint: {
-    ...typography.caption,
-    marginTop: 6,
-    fontStyle: 'italic'
-  },
   ctaBlock: {
     gap: 12,
-    marginTop: 8
+    marginTop: 20
   },
   offersHead: {
-    marginTop: 32,
-    marginBottom: 12
+    marginTop: 30,
+    marginBottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 12
+  },
+  offersEyebrow: {
+    ...typography.micro,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   },
   offersTitle: {
-    ...typography.heading2
+    ...typography.heading2,
+    marginTop: 4
   },
   offersSub: {
     ...typography.caption,
-    marginTop: 4
+    color: colors.textSecondary
   },
   emptyOffers: {
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: colors.border,
-    borderRadius: 16,
+    borderColor: colors.borderStrong,
+    borderRadius: 18,
     padding: 28,
     alignItems: 'center',
-    backgroundColor: colors.muted
+    backgroundColor: colors.surface
   },
   emptyOffersText: {
     ...typography.caption,

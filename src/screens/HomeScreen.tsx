@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useMemo } from 'react'
-import { RefreshControl, Pressable, ScrollView, Text, View, Image } from 'react-native'
+import { RefreshControl, Pressable, ScrollView, Text, View, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Image } from 'expo-image'
 
 import { LogoSalvar } from '../components/branding/LogoSalvar'
 import { RestaurantCard } from '../components/ui/RestaurantCard'
@@ -10,8 +11,8 @@ import { useUserLocation } from '../context/LocationContext'
 import { useMarketplace } from '../hooks/useMarketplace'
 import { foodCategoryData, filterRestaurants } from '../utils/marketplace'
 import type { RestaurantCategory } from '../types/marketplace'
-import { colors, typography } from '../theme'
-import { EncebolladoArt, CuyArt, BolonArt, CevicheArt, ConchasArt } from '../components/ui/EcuadorianArt'
+import { colors, theme, typography } from '../theme'
+import { EncebolladoArt, CuyArt } from '../components/ui/EcuadorianArt'
 
 export function HomeScreen() {
   const { anchor, ready: locationReady } = useUserLocation()
@@ -54,153 +55,155 @@ export function HomeScreen() {
   )
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-row h-[3px]">
-        <View className="flex-1 bg-ecuadorYellow" />
-        <View className="flex-1 bg-ecuadorBlue" />
-        <View className="flex-1 bg-ecuadorRed" />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.flagStripe}>
+        <View style={[styles.flagSegment, { backgroundColor: colors.ecuadorYellow }]} />
+        <View style={[styles.flagSegment, { backgroundColor: colors.ecuadorBlue }]} />
+        <View style={[styles.flagSegment, { backgroundColor: colors.ecuadorRed }]} />
       </View>
 
       <ScrollView
-        contentContainerClassName="pb-10"
+        contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
       >
-        <View className="absolute top-20 left-[-20] opacity-[0.03] rotate-12">
-          <BolonArt size={200} color={colors.primary} />
-        </View>
-        <View className="absolute top-60 right-[-40] opacity-[0.03] -rotate-12">
-          <CevicheArt size={250} color={colors.primary} />
-        </View>
-        <View className="absolute bottom-20 left-10 opacity-[0.03]">
-          <ConchasArt size={180} color={colors.primary} />
-        </View>
-
-        <View className="px-4 py-3 flex-row justify-between items-center bg-white/80 gap-3">
+        <View style={styles.topBar}>
           <Pressable
             onPress={() => router.push('/ubicacion')}
-            className="flex-row items-center flex-1 min-w-0"
-            style={{ flexShrink: 1 }}
+            style={styles.locationButton}
           >
-            <View className="min-w-0 flex-1">
-              <Text
-                className="text-text-secondary uppercase"
-                style={{ fontSize: 11, lineHeight: 14, fontWeight: '600', letterSpacing: 0.4 }}
-              >
-                Entrega cerca de
+            <Text allowFontScaling style={styles.locationLabel}>
+              Recoge cerca de
+            </Text>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={15} color={colors.primary} />
+              <Text numberOfLines={1} allowFontScaling style={styles.locationValue}>
+                {anchor?.label ?? 'Elegir ubicacion'}
               </Text>
-              <View className="flex-row items-center min-w-0 mt-0.5">
-                <Text
-                  numberOfLines={1}
-                  className="font-semibold text-text min-w-0"
-                  style={{ fontSize: 15, lineHeight: 20, flexShrink: 1 }}
-                >
-                  {anchor?.label ?? 'Elegir ubicación'}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.primary} style={{ marginLeft: 2, flexShrink: 0 }} />
-              </View>
+              <Ionicons name="chevron-forward" size={15} color={colors.primary} />
             </View>
           </Pressable>
-          <View style={{ flexShrink: 0 }}>
-            <LogoSalvar size={32} />
+
+          <View style={styles.logoWrap}>
+            <LogoSalvar size={34} />
+          </View>
+        </View>
+
+        <View style={styles.heroCard}>
+          <View style={styles.heroCopy}>
+            <Text allowFontScaling style={styles.eyebrow}>
+              Marketplace de comida rescatada
+            </Text>
+            <Text allowFontScaling style={styles.heroTitle}>
+              Reserva bolsas sorpresa de calidad y paga al recoger
+            </Text>
+            <Text allowFontScaling style={styles.heroBody}>
+              Seleccionamos ofertas cercanas con mejor ahorro, retiro claro y stock visible.
+            </Text>
+
+            <View style={styles.heroMetaRow}>
+              <View style={styles.heroPill}>
+                <Text allowFontScaling style={styles.heroPillText}>
+                  Desde $3.50
+                </Text>
+              </View>
+              <View style={styles.heroPillMuted}>
+                <Text allowFontScaling style={styles.heroPillMutedText}>
+                  Quito y Guayaquil beta
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.heroArtWrap}>
+            <View style={styles.heroArtHalo} />
+            <EncebolladoArt size={112} color={colors.primary} />
           </View>
         </View>
 
         {lowStockRestaurant ? (
-          <View className="bg-ecuadorRed/5 px-4 py-2.5 flex-row items-center">
-            <Ionicons name="flash" size={14} color={colors.ecuadorRed} />
-            <Text style={[typography.caption, { flex: 1, fontWeight: '700', color: colors.ecuadorRed }]}>
-              ¡Rescata rápido! Solo quedan {lowStockRestaurant.offers[0].quantityAvailable} bolsas en{' '}
-              {lowStockRestaurant.name}
+          <View style={styles.alertRow}>
+            <Ionicons name="flash" size={14} color={colors.error} />
+            <Text allowFontScaling style={styles.alertText}>
+              Quedan pocas bolsas en {lowStockRestaurant.name}
             </Text>
           </View>
         ) : null}
 
-        <View className="mt-6 px-4">
-          <View className="flex-row items-center mb-3 ml-1">
-            <View className="h-1 w-1 rounded-full bg-ecuadorYellow mr-1" />
-            <View className="h-1 w-1 rounded-full bg-ecuadorBlue mr-1" />
-            <View className="h-1 w-1 rounded-full bg-ecuadorRed mr-2" />
-            <Text
-              className="text-text-secondary uppercase"
-              style={{ fontSize: 11, lineHeight: 14, fontWeight: '700', letterSpacing: 0.6 }}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleBlock}>
+            <Text allowFontScaling style={styles.sectionEyebrow}>
+              Explora rapido
+            </Text>
+            <Text allowFontScaling style={styles.sectionTitle}>
+              Categorias
+            </Text>
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContent}
+          style={styles.categoriesScroll}
+        >
+          {foodCategoryData.map((cat) => (
+            <Pressable
+              key={cat.id}
+              onPress={() => router.setParams({ category: cat.id })}
+                style={styles.categoryCard}
             >
-              Categorías
+              <View style={styles.categoryImageWrap}>
+                <Image source={cat.image} style={styles.categoryImage} contentFit="cover" cachePolicy="memory-disk" />
+              </View>
+              <Text allowFontScaling numberOfLines={1} style={styles.categoryLabel}>
+                {cat.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <View style={styles.resultsHeader}>
+          <View style={styles.sectionTitleBlock}>
+            <Text allowFontScaling style={styles.sectionEyebrow}>
+              Seleccion para hoy
+            </Text>
+            <Text allowFontScaling style={styles.sectionTitle}>
+              Recomendados
             </Text>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-x-5">
-            {foodCategoryData.map((cat) => (
-              <Pressable
-                key={cat.id}
-                onPress={() => router.setParams({ category: cat.id })}
-                className="items-center"
-              >
-                <View className="w-[72px] h-[72px] rounded-[24px] bg-muted overflow-hidden mb-1.5 shadow-sm border border-border">
-                  <Image source={cat.image} className="w-full h-full" resizeMode="cover" />
-                </View>
-                <Text style={[typography.caption, { fontWeight: '600', color: colors.text }]}>{cat.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
 
-        <View className="px-4 mt-8">
-          <View className="bg-text rounded-[32px] p-6 overflow-hidden flex-row items-center shadow-lg">
-            <View className="flex-1 z-10">
-              <Text style={[typography.heading2, { color: '#FFFFFF', fontSize: 24, lineHeight: 30, letterSpacing: -0.4 }]}>
-                ¡Rescata sabor{'\n'}y ahorra hoy!
-              </Text>
-              <Text style={[typography.caption, { color: 'rgba(255,255,255,0.72)', marginTop: 8 }]}>
-                Bolsas sorpresa desde $3.50
-              </Text>
-              <Pressable
-                className="self-start px-5 py-2 rounded-full mt-5 bg-ecuadorRed"
-                onPress={() => router.push('/explorar')}
-              >
-                <Text style={[typography.micro, { color: '#FFFFFF', fontWeight: '700', letterSpacing: 0.4 }]}>
-                  Ver ofertas
-                </Text>
-              </Pressable>
-            </View>
-            <View className="absolute right-[-20] top-[-10] opacity-20 rotate-12">
-              <EncebolladoArt size={140} color="#FFFFFF" />
-            </View>
-          </View>
-        </View>
-
-        <View className="px-4 mt-8 flex-row items-start gap-3">
-          <View className="flex-1 min-w-0" style={{ flexShrink: 1 }}>
-            <Text style={[typography.heading2, { letterSpacing: -0.35 }]}>Recomendados</Text>
-            <Text numberOfLines={1} style={[typography.caption, { marginTop: 4, fontWeight: '500' }]}>
-              Cerca de mí
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => router.push('/filtros')}
-            className="bg-muted rounded-full flex-row items-center border border-border"
-            style={{
-              flexShrink: 0,
-              paddingHorizontal: 14,
-              paddingVertical: 10,
-              marginTop: 2
-            }}
-          >
+          <Pressable onPress={() => router.push('/filtros')} style={styles.filterButton}>
             <Ionicons name="options-outline" size={16} color={colors.text} />
-            <Text style={[typography.caption, { marginLeft: 6, fontWeight: '700', color: colors.text }]}>Filtros</Text>
+            <Text allowFontScaling style={styles.filterButtonText}>
+              Filtros
+            </Text>
           </Pressable>
         </View>
 
-        <View className="px-4 mt-6">
+        <View style={styles.resultsMeta}>
+          <Text allowFontScaling style={styles.resultsMetaText}>
+            {filteredRestaurants.length} lugares con retiro cercano
+          </Text>
+        </View>
+
+        <View style={styles.resultsList}>
           {error ? (
-            <View className="bg-surface rounded-3xl p-6 border border-border items-center">
-              <Text style={[typography.title, { fontWeight: '700' }]}>Error de conexión</Text>
-              <Text style={[typography.caption, { marginTop: 6, textAlign: 'center' }]}>{error}</Text>
+            <View style={styles.feedbackCard}>
+              <Text allowFontScaling style={styles.feedbackTitle}>
+                Error de conexion
+              </Text>
+              <Text allowFontScaling style={styles.feedbackBody}>
+                {error}
+              </Text>
             </View>
           ) : filteredRestaurants.length === 0 ? (
-            <View className="bg-white rounded-3xl p-10 items-center border border-border">
-              <CuyArt size={80} color={colors.ecuadorRed} />
-              <Text style={[typography.title, { fontWeight: '700', marginTop: 16 }]}>Sin resultados</Text>
-              <Text style={[typography.caption, { textAlign: 'center', marginTop: 8, paddingHorizontal: 24 }]}>
-                No encontramos negocios con estos filtros. Prueba ampliar la distancia o ajustar ubicación.
+            <View style={styles.feedbackCard}>
+              <CuyArt size={72} color={colors.error} />
+              <Text allowFontScaling style={[styles.feedbackTitle, { marginTop: 14 }]}>
+                Sin resultados
+              </Text>
+              <Text allowFontScaling style={styles.feedbackBody}>
+                Prueba ampliar la distancia o cambiar la categoria para ver mas opciones.
               </Text>
             </View>
           ) : (
@@ -217,3 +220,272 @@ export function HomeScreen() {
     </SafeAreaView>
   )
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background
+  },
+  flagStripe: {
+    flexDirection: 'row',
+    height: 3
+  },
+  flagSegment: {
+    flex: 1
+  },
+  scrollContent: {
+    paddingBottom: 28
+  },
+  topBar: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  locationButton: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    ...theme.shadows.card
+  },
+  locationLabel: {
+    ...typography.micro,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4
+  },
+  locationValue: {
+    ...typography.title,
+    color: colors.text,
+    fontWeight: '600',
+    flex: 1
+  },
+  logoWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  heroCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    ...theme.shadows.card
+  },
+  heroCopy: {
+    flex: 1
+  },
+  eyebrow: {
+    ...typography.micro,
+    color: colors.primary,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6
+  },
+  heroTitle: {
+    ...typography.heading2,
+    fontSize: 25,
+    lineHeight: 30,
+    letterSpacing: -0.5,
+    color: colors.text,
+    marginTop: 8
+  },
+  heroBody: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 8,
+    lineHeight: 18
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14
+  },
+  heroPill: {
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  heroPillText: {
+    ...typography.micro,
+    color: colors.textInverse,
+    fontWeight: '700',
+    letterSpacing: 0.35
+  },
+  heroPillMuted: {
+    backgroundColor: colors.accentSoft,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  heroPillMutedText: {
+    ...typography.micro,
+    color: colors.primaryPressed,
+    fontWeight: '700'
+  },
+  heroArtWrap: {
+    width: 112,
+    height: 112,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  heroArtHalo: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.primaryMuted
+  },
+  alertRow: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: colors.errorSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.12)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  alertText: {
+    ...typography.caption,
+    color: colors.error,
+    fontWeight: '700',
+    flex: 1
+  },
+  sectionHeader: {
+    marginTop: 26,
+    paddingHorizontal: 16
+  },
+  sectionTitleBlock: {
+    minWidth: 0
+  },
+  sectionEyebrow: {
+    ...typography.micro,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  sectionTitle: {
+    ...typography.heading2,
+    color: colors.text,
+    marginTop: 4
+  },
+  categoriesScroll: {
+    marginTop: 14
+  },
+  categoriesContent: {
+    paddingHorizontal: 16,
+    gap: 12
+  },
+  categoryCard: {
+    width: 90
+  },
+  categoryImageWrap: {
+    width: 90,
+    height: 90,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...theme.shadows.card
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%'
+  },
+  categoryLabel: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center'
+  },
+  resultsHeader: {
+    marginTop: 28,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 12
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  filterButtonText: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '700'
+  },
+  resultsMeta: {
+    paddingHorizontal: 16,
+    marginTop: 6
+  },
+  resultsMetaText: {
+    ...typography.caption,
+    color: colors.textSecondary
+  },
+  resultsList: {
+    paddingHorizontal: 16,
+    marginTop: 14
+  },
+  feedbackCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  feedbackTitle: {
+    ...typography.title,
+    color: colors.text,
+    fontWeight: '700'
+  },
+  feedbackBody: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 18
+  }
+})

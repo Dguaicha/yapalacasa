@@ -9,8 +9,7 @@ import { PrimaryButton } from '../components/ui/PrimaryButton'
 import { SecondaryButton } from '../components/ui/SecondaryButton'
 import { TextInputField } from '../components/ui/TextInputField'
 import { useSession } from '../hooks/useSession'
-import { getAuthRedirectUrl } from '../services/auth'
-import { supabase } from '../services/supabase'
+import { sendEmailOtp } from '../services/auth'
 import { colors, typography } from '../theme'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -19,7 +18,6 @@ export function RegisterScreen() {
   const { session } = useSession()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string | null>>({})
 
@@ -30,18 +28,15 @@ export function RegisterScreen() {
   }, [session])
 
   async function handleRegister() {
+    const normalizedEmail = email.trim().toLowerCase()
     const nextErrors: Record<string, string | null> = {
       name: null,
-      email: null,
-      password: null
+      email: null
     }
 
     if (!name.trim()) nextErrors.name = 'Ingresa tu nombre.'
-    if (!EMAIL_REGEX.test(email.trim().toLowerCase())) {
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
       nextErrors.email = 'Ingresa un correo valido.'
-    }
-    if (password.trim().length < 6) {
-      nextErrors.password = 'La contrasena debe tener al menos 6 caracteres.'
     }
 
     setErrors(nextErrors)
@@ -50,15 +45,10 @@ export function RegisterScreen() {
 
     setLoading(true)
 
-    const { error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password: password.trim(),
-      options: {
-        data: {
-          name: name.trim()
-        },
-        emailRedirectTo: getAuthRedirectUrl()
-      }
+    const { error } = await sendEmailOtp(normalizedEmail, {
+      shouldCreateUser: true,
+      name: name.trim(),
+      email: normalizedEmail
     })
 
     setLoading(false)
@@ -68,8 +58,10 @@ export function RegisterScreen() {
       return
     }
 
-    Alert.alert('Cuenta creada', 'Revisa tu correo para confirmar la cuenta.')
-    router.replace('/login')
+    Alert.alert(
+      'Verifica tu correo',
+      'Te enviamos un enlace para confirmar tu cuenta. Debes abrirlo antes de reservar.'
+    )
   }
 
   return (
@@ -78,7 +70,7 @@ export function RegisterScreen() {
       <StackHeader title="Crear cuenta" onNavigate={() => router.replace('/onboarding')} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text allowFontScaling style={styles.subtitle}>
-          Crea tu cuenta para reservar bolsas sorpresa.
+          Crea tu cuenta con correo verificado para poder reservar bolsas sorpresa.
         </Text>
 
         <View style={styles.card}>
@@ -88,27 +80,22 @@ export function RegisterScreen() {
             onChangeText={setName}
             placeholder="Tu nombre"
             value={name}
+            editable={!loading}
           />
           <TextInputField
             autoCapitalize="none"
+            autoComplete="email"
             error={errors.email}
             keyboardType="email-address"
             label="Correo"
             onChangeText={setEmail}
             placeholder="tu@correo.com"
             value={email}
+            editable={!loading}
           />
-          <TextInputField
-            autoCapitalize="none"
-            error={errors.password}
-            label="Contrasena"
-            onChangeText={setPassword}
-            placeholder="Crea una contrasena"
-            secureTextEntry
-            value={password}
-          />
+
           <PrimaryButton
-            title={loading ? 'Creando cuenta...' : 'Crear cuenta'}
+            title={loading ? 'Enviando enlace...' : 'Crear cuenta y enviar enlace'}
             onPress={handleRegister}
             disabled={loading}
           />

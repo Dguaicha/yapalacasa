@@ -1,10 +1,14 @@
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useEffect, useMemo, useState } from 'react'
+import { useNetInfo } from '@react-native-community/netinfo'
 
 import { FlagStripe } from '../components/ui/FlagStripe'
 import { StackHeader } from '../components/ui/StackHeader'
 import { PrimaryButton } from '../components/ui/PrimaryButton'
+import { useSession } from '../hooks/useSession'
 import { useReservations } from '../hooks/useReservations'
+import { getCachedReservationReceipts } from '../services/reservationReceipts'
 import { cancelMyReservation } from '../services/reservations'
 import { colors, typography } from '../theme'
 
@@ -15,14 +19,49 @@ function formatPickup(start: string | null, end: string | null) {
 
 function formatStatus(status: string) {
   if (status === 'reserved') return 'Reservada'
-  if (status === 'completed') return 'Completada'
+  if (status === 'completed') return 'Retirada'
   if (status === 'cancelled') return 'Cancelada'
   return status
 }
 
+function formatPaymentStatus(status: string) {
+  if (status === 'pending') return 'Pagas al recoger'
+  if (status === 'paid') return 'Pagada en local'
+  if (status === 'refunded') return 'Reembolsada'
+  if (status === 'failed') return 'Pago pendiente de soporte'
+  return status
+}
+
 export function ReservationsScreen() {
+  const netInfo = useNetInfo()
+  const { session } = useSession()
   const { reservations, loading, refresh } = useReservations('customer')
-  const activeReservations = reservations.filter((reservation) => reservation.status === 'reserved')
+  const [cachedReservations, setCachedReservations] = useState<typeof reservations>([])
+  const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadCachedReceipts() {
+      if (!session?.user?.id) return
+
+      const nextCached = await getCachedReservationReceipts(session.user.id)
+      if (!mounted) return
+      setCachedReservations(nextCached)
+    }
+
+    loadCachedReceipts()
+
+    return () => {
+      mounted = false
+    }
+  }, [session?.user?.id, reservations])
+
+  const displayedReservations = useMemo(
+    () => (isOffline ? cachedReservations : reservations),
+    [cachedReservations, isOffline, reservations]
+  )
+  const activeReservations = displayedReservations.filter((reservation) => reservation.status === 'reserved')
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -33,12 +72,23 @@ export function ReservationsScreen() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
       >
         <Text allowFontScaling style={styles.lead}>
-          Consulta horario, código y estado.
+          Consulta horario, codigo y estado de cada reserva.
         </Text>
+
+        {isOffline ? (
+          <View style={styles.offlineBanner}>
+            <Text allowFontScaling style={styles.offlineTitle}>
+              Sin conexion
+            </Text>
+            <Text allowFontScaling style={styles.offlineCopy}>
+              Mostrando tus codigos guardados localmente para el retiro.
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.summaryCard}>
           <Text allowFontScaling style={styles.summaryNumber}>
-            {reservations.length}
+            {displayedReservations.length}
           </Text>
           <Text allowFontScaling style={styles.summaryText}>
             Reservas totales
@@ -48,17 +98,17 @@ export function ReservationsScreen() {
           </Text>
         </View>
 
-        {reservations.length === 0 ? (
+        {displayedReservations.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text allowFontScaling style={styles.emptyTitle}>
               Aun no tienes reservas.
             </Text>
             <Text allowFontScaling style={styles.emptyCopy}>
-              Cuando confirmes una bolsa aparecera aqui.
+              Cuando confirmes una bolsa aparecera aqui con su codigo de retiro.
             </Text>
           </View>
         ) : (
-          reservations.map((reservation) => (
+          displayedReservations.map((reservation) => (
             <View key={reservation.id} style={styles.card}>
               <Text allowFontScaling style={styles.code}>
                 Codigo {reservation.pickupCode}
@@ -75,10 +125,13 @@ export function ReservationsScreen() {
               <Text allowFontScaling style={styles.meta}>
                 Estado {formatStatus(reservation.status)}
               </Text>
+              <Text allowFontScaling style={styles.meta}>
+                Pago {formatPaymentStatus(reservation.paymentStatus)}
+              </Text>
               <Text allowFontScaling style={styles.price}>
                 ${reservation.totalPrice.toFixed(2)}
               </Text>
-              {reservation.status === 'reserved' ? (
+              {reservation.status === 'reserved' && !isOffline ? (
                 <PrimaryButton
                   title="Cancelar reserva"
                   onPress={async () => {
@@ -139,6 +192,23 @@ const styles = StyleSheet.create({
   summarySubtext: {
     ...typography.caption,
     color: colors.textSecondary
+  },
+  offlineBanner: {
+    backgroundColor: colors.primaryMuted,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  offlineTitle: {
+    ...typography.title,
+    color: colors.primaryPressed,
+    fontWeight: '700'
+  },
+  offlineCopy: {
+    ...typography.caption,
+    color: colors.primaryPressed,
+    marginTop: 4
   },
   emptyTitle: {
     ...typography.title,

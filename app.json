@@ -3,10 +3,14 @@
     "name": "Salvar",
     "slug": "salvar",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "scheme": "salvar",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "backgroundColor": "#FBFBF7",
+    "jsEngine": "hermes",
     "platforms": [
       "ios",
       "android",
@@ -22,8 +26,12 @@
       "favicon": "./assets/favicon.png"
     },
     "assetBundlePatterns": [
-      "**/*"
+      "assets/**/*"
     ],
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
     "plugins": [
       "expo-font",
       [
@@ -35,7 +43,12 @@
       ]
     ],
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.salvar.mobile"
+    },
     "android": {
+      "package": "app.salvar.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FBFBF7"

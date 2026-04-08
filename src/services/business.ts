@@ -195,8 +195,6 @@ export async function saveMyRestaurant(input: RestaurantFormInput) {
 
   if (error) throw error
 
-  await supabase.from('profiles').update({ role: 'restaurant_owner' }).eq('id', user.id)
-
   return toRestaurantModel(data as RestaurantRow)
 }
 

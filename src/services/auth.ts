@@ -2,6 +2,8 @@ import type { EmailOtpType } from '@supabase/supabase-js'
 import * as Linking from 'expo-linking'
 import { Platform } from 'react-native'
 
+import { supabase } from './supabase'
+
 export type CallbackParams = {
   accessToken: string | null
   code: string | null
@@ -44,4 +46,25 @@ export function getAuthCallbackParams(rawUrl?: string | null): CallbackParams {
     tokenHash: searchParams.get('token_hash') ?? hashParams.get('token_hash'),
     type: (typeValue as EmailOtpType | null) ?? null
   }
+}
+
+export async function sendEmailOtp(
+  email: string,
+  metadata?: {
+    email?: string
+    name?: string
+    shouldCreateUser?: boolean
+  }
+) {
+  return await supabase.auth.signInWithOtp({
+    email: email.trim().toLowerCase(),
+    options: {
+      emailRedirectTo: getAuthRedirectUrl(),
+      shouldCreateUser: metadata?.shouldCreateUser ?? false,
+      data: {
+        name: metadata?.name?.trim(),
+        email: metadata?.email?.trim()?.toLowerCase()
+      }
+    }
+  })
 }
